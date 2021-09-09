@@ -26,10 +26,12 @@ def get_channel_waveform(sched: Schedule,
                          chan_freq: Union[None, float] = None,
                          dt: float = 2e-9 / 9, 
                          apply_carrier_wave: bool = False):
-    """Returns the waveforms on a PulseChannel.
+    """Returns the flattened waveform for a given :class:`qiskit.pulse.channels.PulseChannel` from an input :class:`qiskit.pulse.Schedule`.
+
     
     Args:
-        sched: The pulse Schedule object.
+        sched: A pulse schedule to extract a channel's time-series from
+
         chan: The PulseChannel on which the waveform is to be returned.
         backend: An IBMQBackend from which the qubit frequency and dt 
             are to be extracted.
@@ -40,13 +42,15 @@ def get_channel_waveform(sched: Schedule,
         apply_carrier_wave: Whether the carrier wave is applied to the waveforms.
         
     Returns:
-        chan_waveform: A complex-valued array of the waveform on the 
+        A complex-valued array of the waveform on the 
             given PulseChannel.
+
     """
     # Check consistency of arguments
     if not isinstance(chan, PulseChannel):
-        raise TypeError("The channel must be a DriveChannel, " 
-                        "ControlChannel or a MeasureChannel")
+        raise TypeError("The channel must be a PulseChannel eg., a DriveChannel, " 
+                        "ControlChannel or MeasureChannel")
+
     if apply_carrier_wave:
         if backend is not None and qubit_index is not None:
             if isinstance(chan, MeasureChannel):
@@ -78,8 +82,8 @@ def get_channel_waveform(sched: Schedule,
             
             # Apply phase and frequency shifts and optionally carrier wave
             pulse_waveform = inst_tup.inst.pulse.get_waveform().samples
-            pulse_waveform *= np.exp(1j * phase)            
-            pulse_waveform *= np.exp(1j * freq * t_array)
+            pulse_waveform *= np.exp(1j * (2 * np.pi* freq * t_array + phase))
+
             if apply_carrier_wave:
                 pulse_waveform *= np.exp(1j * 2 * np.pi * chan_freq * t_array)
 
