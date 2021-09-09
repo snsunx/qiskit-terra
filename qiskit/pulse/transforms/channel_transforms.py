@@ -81,6 +81,7 @@ def get_channel_waveform(sched: Schedule,
             pulse_waveform *= np.exp(1j * phase)            
             pulse_waveform *= np.exp(1j * freq * t_array)
             if apply_carrier_wave:
-                pulse_waveform *= np.exp(1j * chan_freq * t_array)
+                pulse_waveform *= np.exp(1j * 2 * np.pi * chan_freq * t_array)
+
             chan_waveform[t0:tf] += pulse_waveform
     return chan_waveform
