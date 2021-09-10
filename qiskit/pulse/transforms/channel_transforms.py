@@ -11,62 +11,70 @@
 # that they have been altered from the originals.
 
 import numpy as np
-from typing import Union
+from typing import Optional, Union, Tuple, Iterable
 
-from base_transforms import target_qobj_transform
+from .base_transforms import target_qobj_transform
 from qiskit.providers.ibmq import IBMQBackend
-from qiskit.pulse import Schedule, Play, MeasureChannel
+from qiskit.pulse import Schedule, ScheduleBlock, Play, MeasureChannel
+from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.channels import PulseChannel
 from qiskit.visualization.pulse_v2.events import ChannelEvents
 
-def get_channel_waveform(sched: Schedule, 
+InstructionSched = Union[Tuple[int, Instruction], Instruction]
+
+def get_channel_waveform(sched: Union[ScheduleBlock, 
+                                      Schedule, 
+                                      InstructionSched, 
+                                      Iterable[InstructionSched]],
                          chan: PulseChannel, 
-                         backend: Union[None, IBMQBackend] = None,
-                         qubit_index: Union[None, int] = None,
-                         chan_freq: Union[None, float] = None,
-                         dt: float = 2e-9 / 9, 
-                         apply_carrier_wave: bool = False):
-    """Returns the flattened waveform for a given :class:`qiskit.pulse.channels.PulseChannel` from an input :class:`qiskit.pulse.Schedule`.
+                         backend: Optional[IBMQBackend] = None,
+                         dt: Optional[float] = None, 
+                         chan_freq: Optional[float] = None,
+                         apply_carrier_wave: bool = False) -> np.ndarray:
+    """Returns the flattened waveform for a given
+    :class:`qiskit.pulse.channels.PulseChannel` from an input 
+    :class:`qiskit.pulse.Schedule`.
 
-    
     Args:
-        sched: A pulse schedule to extract a channel's time-series from
-
+        sched: A pulse schedule to extract a channel's time-series from.
         chan: The PulseChannel on which the waveform is to be returned.
         backend: An IBMQBackend from which the qubit frequency and dt 
             are to be extracted.
-        qubit_index: An integer indicating the qubit index.
-        chan_freq: A float indicating the channel wave frequency. Not necessary if 
-            both backend and qubit_index are specified.
         dt: Qubit drive channel timestep in seconds. Default to the 2/9 ns.
-        apply_carrier_wave: Whether the carrier wave is applied to the waveforms.
+        chan_freq: A float indicating the channel wave frequency. Must be 
+            supplied if apply_carrier_wave is set to True and backend is None.
+        apply_carrier_wave: Whether the carrier wave is applied to the 
+            waveforms.
         
     Returns:
-        A complex-valued array of the waveform on the 
-            given PulseChannel.
+        A complex-valued array of the waveform on the given PulseChannel.
 
     """
     # Check consistency of arguments
+    if chan not in sched.channels:
+        raise ValueError("Channel must be in the pulse schedule")
     if not isinstance(chan, PulseChannel):
-        raise TypeError("The channel must be a PulseChannel eg., a DriveChannel, " 
-                        "ControlChannel or MeasureChannel")
-
-    if apply_carrier_wave:
-        if backend is not None and qubit_index is not None:
+        raise TypeError("The channel must be a PulseChannel, e.g. "
+                        "a DriveChannel, ControlChannel or MeasureChannel")
+    if backend is None:
+        dt = 2e-9 / 9
+        if apply_carrier_wave:
+            if chan_freq is None:
+                raise ValueError("Channel frequency must be supplied if "
+                                 "applying carrier wave and backend is None")
+    else:
+        dt = backend.configuration().dt
+        if apply_carrier_wave:
             if isinstance(chan, MeasureChannel):
-                chan_freq = backend.defaults().meas_freq_est[qubit_index]
+                chan_freq = backend.defaults().meas_freq_est[chan.index]
             else:
-                chan_freq = backend.defaults().qubit_freq_est[qubit_index]
-        else:
-            assert chan_freq is not None
+                chan_freq = backend.defaults().qubit_freq_est[chan.index]
 
     # Flatten the Schedule and transform it into an iterator of 
     # InstructionTuples
     sched_trans = target_qobj_transform(sched)
     chan_events = ChannelEvents.load_program(sched_trans, chan)
     waveform_inst_tups = chan_events.get_waveforms()
-    if backend is not None:
-        dt = backend.configuration().dt
 
     # Bulid the channel waveform
     chan_waveform = np.zeros((sched_trans.duration,), dtype=complex)
