@@ -105,3 +105,5 @@ from qiskit.pulse.transforms.canonicalization import (
 )
 
 from qiskit.pulse.transforms.dag import block_to_dag
+
+from qiskit.pulse.transforms.channel_transforms import ChannelTransforms
