@@ -17,103 +17,108 @@ Special data types.
 """
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
+from typing import Union, List, Optional, NewType, Dict, Any, Tuple
+from dataclasses import dataclass
 
 import numpy as np
 from qiskit import pulse
 from ..instructions import Instruction
 
 
-class PhaseFreqTuple(NamedTuple):
+@dataclass
+class PhaseFreqTuple:
+    """Data to represent a set of frequency and phase values.
+    
+    Args:
+        phase: Phase value in rad.
+        freq: Frequency value in Hz.
+    """
     phase: float
     freq: float
 
+@dataclass
+class BarrierInstruction:
+    """Data to represent special pulse instruction of barrier.
+    
+    Args:
+        t0: A time when the instruction is issued.
+        dt: System cycle time.
+        channels: A list of channels associated with this barrier.
+    """
+    t0: int
+    dt: Optional[float]
+    channels: List[pulse.channels.Channel]
 
-PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
-PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
-PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
+@dataclass
+class SnapshotInstruction:
+    """Data to represent special pulse instruction of snapshot.
+    
+    Args:
+        t0: A time when the instruction is issued.
+        dt: System cycle time.
+        inst: Snapshot instruction.
+    """
+    t0: int
+    dt: Optional[float]
+    inst: pulse.instructions.Snapshot
 
-
-PulseInstruction = NamedTuple(
-    "InstructionTuple",
-    [
-        ("t0", int),
-        ("dt", Optional[float]),
-        ("frame", PhaseFreqTuple),
-        ("inst", Union[Instruction, List[Instruction]]),
-        ("is_opaque", bool),
-    ],
-)
-PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
-PulseInstruction.t0.__doc__ = "A time when the instruction is issued."
-PulseInstruction.dt.__doc__ = "System cycle time."
-PulseInstruction.frame.__doc__ = "A reference frame to run instruction."
-PulseInstruction.inst.__doc__ = "Pulse instruction."
-PulseInstruction.is_opaque.__doc__ = "If there is any unbound parameters."
-
-
-BarrierInstruction = NamedTuple(
-    "Barrier", [("t0", int), ("dt", Optional[float]), ("channels", List[pulse.channels.Channel])]
-)
-BarrierInstruction.__doc__ = "Data to represent special pulse instruction of barrier."
-BarrierInstruction.t0.__doc__ = "A time when the instruction is issued."
-BarrierInstruction.dt.__doc__ = "System cycle time."
-BarrierInstruction.channels.__doc__ = "A list of channel associated with this barrier."
-
-
-SnapshotInstruction = NamedTuple(
-    "Snapshots", [("t0", int), ("dt", Optional[float]), ("inst", pulse.instructions.Snapshot)]
-)
-SnapshotInstruction.__doc__ = "Data to represent special pulse instruction of snapshot."
-SnapshotInstruction.t0.__doc__ = "A time when the instruction is issued."
-SnapshotInstruction.dt.__doc__ = "System cycle time."
-SnapshotInstruction.inst.__doc__ = "Snapshot instruction."
-
-
-class ChartAxis(NamedTuple):
+@dataclass
+class ChartAxis:
+    """Data to represent an axis information of chart.
+    
+    Args:
+        name: Name of chart.
+        channels: Channels associated with chart.
+    """
     name: str
     channels: List[pulse.channels.Channel]
 
+@dataclass
+class ParsedInstruction:
+    """A class to store parsed pulse instructions.
+    
+    Args:
+        t0: A time when the instruction is issued.
+        dt: System cycle time.
+        frame: A reference frame to run instruction.
+        inst: Pulse instruction.
+        is_opaque: If there is any unbound parameters.
+        xdata: The time point data for plotting.
+        ydata: The pulse amplitude data for plotting.
+    """
+    t0: int
+    dt: float
+    frame: PhaseFreqTuple 
+    inst: Union[Instruction, List[Instruction]]
+    is_opaque: bool
+    xdata: np.ndarray = None
+    ydata: np.ndarray = None
 
-ChartAxis.__doc__ = "Data to represent an axis information of chart."
-ChartAxis.name.__doc__ = "Name of chart."
-ChartAxis.channels.__doc__ = "Channels associated with chart."
-
-
-class ParsedInstruction(NamedTuple):
-    xvals: np.ndarray
-    yvals: np.ndarray
-    meta: Dict[str, Any]
-
-
-ParsedInstruction.__doc__ = "Data to represent a parsed pulse instruction for object generation."
-ParsedInstruction.xvals.__doc__ = "Numpy array of x axis data."
-ParsedInstruction.yvals.__doc__ = "Numpy array of y axis data."
-ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
-
-
-class OpaqueShape(NamedTuple):
+@dataclass
+class OpaqueShape:
+    """Data to represent a pulse instruction with parameterized shape.
+    
+    Args:
+        duration: Duration of instruction.
+        meta: Dictionary containing instruction details.
+    """
     duration: np.ndarray
     meta: Dict[str, Any]
 
-
-OpaqueShape.__doc__ = "Data to represent a pulse instruction with parameterized shape."
-OpaqueShape.duration.__doc__ = "Duration of instruction."
-OpaqueShape.meta.__doc__ = "Dictionary containing instruction details."
-
-
-class HorizontalAxis(NamedTuple):
+@dataclass
+class HorizontalAxis:
+    """Data to represent configuration of horizontal axis.
+    
+    Args:
+        window: Left and right edge of graph.
+        axis_map: Mapping of apparent coordinate system and actual location.
+        axis_break_pos: Location of axis break.
+        label: Label of horizontal axis.
+    """
     window: Tuple[int, int]
     axis_map: Dict[float, Union[float, str]]
     axis_break_pos: List[int]
     label: str
-
-
-HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
-HorizontalAxis.window.__doc__ = "Left and right edge of graph."
-HorizontalAxis.axis_map.__doc__ = "Mapping of apparent coordinate system and actual location."
-HorizontalAxis.axis_break_pos.__doc__ = "Locations of axis break."
-HorizontalAxis.label.__doc__ = "Label of horizontal axis."
 
 
 class WaveformType(str, Enum):

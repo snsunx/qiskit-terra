@@ -21,37 +21,19 @@ from qiskit import pulse, circuit
 from qiskit.pulse.instructions import Instruction
 
 from .base_transforms import target_qobj_transform
-from .pulse_instruction_types import PhaseFreqTuple, PulseInstruction, OpaqueShape
+from .instruction_types import PhaseFreqTuple, OpaqueShape, ParsedInstruction
 from .device_info import DrawerBackendInfo, OpenPulseBackendInfo
 from ..schedule import Schedule, ScheduleBlock
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 ScheduleLike = Union[Schedule, ScheduleBlock, 
                      InstructionSched, Iterable[InstructionSched]]
-
-class ParsedInstruction:
-    def __init__(self, 
-                 t0: int,
-                 dt: float,
-                 frame: PhaseFreqTuple, 
-                 inst: Union[Instruction, List[Instruction]], 
-                 is_opaque: bool, 
-                 xdata: np.ndarray = None,
-                 ydata: np.ndarray = None):
-        self.t0 = t0
-        self.dt = dt
-        self.frame = frame
-        self.inst = inst
-        self.is_opaque = is_opaque
-        self.xdata = xdata
-        self.ydata = ydata
+WaveformInstruction = Union[pulse.Play, pulse.Delay, pulse.Acquire]
+FrameInstruction = Union[pulse.SetFrequency, pulse.ShiftFrequency, 
+                         pulse.SetPhase, pulse.ShiftPhase]
 
 class ChannelTransforms:
     """Channel transform manager."""
-
-    _waveform_group = (pulse.Play, pulse.Delay, pulse.Acquire)
-    _frame_group = (pulse.SetFrequency, pulse.ShiftFrequency,
-                    pulse.SetPhase, pulse.ShiftPhase)
 
     def __init__(
         self,
@@ -104,12 +86,12 @@ class ChannelTransforms:
 
         # parse instructions
         for t0, inst in program.filter(channels=[channel]).instructions:
-            if isinstance(inst, cls._waveform_group):
+            if isinstance(inst, WaveformInstruction.__args__):
                 if inst.duration == 0:
                     # special case, duration of delay can be zero
                     continue
                 waveforms[t0] = inst
-            elif isinstance(inst, cls._frame_group):
+            elif isinstance(inst, FrameInstruction.__args__):
                 frames[t0].append(inst)
         
         chan_transforms = cls(waveforms, frames, channels)   
@@ -176,7 +158,7 @@ class ChannelTransforms:
 
             yield parsed_inst
 
-    def get_frame_changes(self) -> Iterator[PulseInstruction]:
+    def get_frame_changes(self) -> Iterator[ParsedInstruction]:
         """Returns frame change type instructions with total frame change amount."""
         # TODO: parse parametrised FCs correctly
 
@@ -204,7 +186,7 @@ class ChannelTransforms:
                 frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
                 is_opaque = True
 
-            yield PulseInstruction(t0, self._dt, frame, frame_changes, is_opaque)
+            yield ParsedInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
     @staticmethod
     def _calculate_current_frame(

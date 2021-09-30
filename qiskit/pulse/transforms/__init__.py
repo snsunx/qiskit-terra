@@ -106,5 +106,5 @@ from qiskit.pulse.transforms.canonicalization import (
 
 from qiskit.pulse.transforms.dag import block_to_dag
 # from qiskit.pulse.transforms.channel_transforms import ChannelTransforms
-from qiskit.pulse.transforms.pulse_instruction_types import PhaseFreqTuple, PulseInstruction, OpaqueShape
+#from qiskit.pulse.transforms.pulse_instruction_types import PhaseFreqTuple, OpaqueShape
 from qiskit.pulse.transforms.device_info import OpenPulseBackendInfo
