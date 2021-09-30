@@ -44,13 +44,17 @@ from typing import Dict, Any, List, Union
 import numpy as np
 
 from qiskit import pulse, circuit
+from qiskit.pulse.transforms.channel_transforms import ParsedInstruction
+
 from qiskit.pulse import instructions
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_filled_waveform_stepwise(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    parsed_inst: ParsedInstruction, 
+    formatter: Dict[str, Any], device:
+    device_info.DrawerBackendInfo
 ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
@@ -71,56 +75,47 @@ def gen_filled_waveform_stepwise(
     Raises:
         VisualizationError: When the instruction parser returns invalid data format.
     """
-    # generate waveform data
-    waveform_data = _parse_waveform(data)
-    channel = data.inst.channel
-
     # update metadata
-    meta = waveform_data.meta
+    meta = _get_metadata(parsed_inst)
+    channel = parsed_inst.inst.channel
     qind = device.get_qubit_index(channel)
     meta.update({"qubit": qind if qind is not None else "N/A"})
 
-    if isinstance(waveform_data, types.ParsedInstruction):
+    # if isinstance(waveform_data, types.ParsedInstruction):
+    if not parsed_inst.is_opaque:
         # Draw waveform with fixed shape
 
-        xdata = waveform_data.xvals
-        ydata = waveform_data.yvals
-
-        # phase modulation
-        if formatter["control.apply_phase_modulation"]:
-            ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
-        else:
-            ydata = np.asarray(ydata, dtype=complex)
+        xdata = parsed_inst.xdata
+        ydata = parsed_inst.ydata
 
         return _draw_shaped_waveform(
-            xdata=xdata, ydata=ydata, meta=meta, channel=channel, formatter=formatter
+            xdata=xdata, ydata=ydata, meta=meta, 
+            channel=channel, formatter=formatter
         )
-
-    elif isinstance(waveform_data, types.OpaqueShape):
+    else:
         # Draw parametric pulse with unbound parameters
 
         # parameter name
         unbound_params = []
-        for pname, pval in data.inst.pulse.parameters.items():
+        for pname, pval in parsed_inst.inst.pulse.parameters.items():
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
         return _draw_opaque_waveform(
-            init_time=data.t0,
-            duration=waveform_data.duration,
-            pulse_shape=data.inst.pulse.__class__.__name__,
+            init_time=parsed_inst.t0,
+            duration=parsed_inst.duration,
+            pulse_shape=parsed_inst.inst.pulse.__class__.__name__,
             pnames=unbound_params,
             meta=meta,
             channel=channel,
             formatter=formatter,
         )
 
-    else:
-        raise VisualizationError("Invalid data format is provided.")
-
 
 def gen_ibmq_latex_waveform_name(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    parsed_inst: ParsedInstruction, 
+    formatter: Dict[str, Any],
+    device: device_info.DrawerBackendInfo 
 ) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
@@ -151,7 +146,7 @@ def gen_ibmq_latex_waveform_name(
     Returns:
         List of `TextData` drawings.
     """
-    if data.is_opaque:
+    if parsed_inst.is_opaque:
         return []
 
     style = {
@@ -162,14 +157,14 @@ def gen_ibmq_latex_waveform_name(
         "ha": "center",
     }
 
-    if isinstance(data.inst, pulse.instructions.Acquire):
+    if isinstance(parsed_inst.inst, pulse.instructions.Acquire):
         systematic_name = "Acquire"
         latex_name = None
-    elif isinstance(data.inst, instructions.Delay):
-        systematic_name = data.inst.name or "Delay"
+    elif isinstance(parsed_inst.inst, instructions.Delay):
+        systematic_name = parsed_inst.inst.name or "Delay"
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
+        systematic_name = parsed_inst.inst.pulse.name or parsed_inst.inst.pulse.__class__.__name__
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -211,8 +206,8 @@ def gen_ibmq_latex_waveform_name(
 
     text = drawings.TextData(
         data_type=types.LabelType.PULSE_NAME,
-        channels=data.inst.channel,
-        xvals=[data.t0 + 0.5 * data.inst.duration],
+        channels=parsed_inst.inst.channel,
+        xvals=[parsed_inst.t0 + 0.5 * parsed_inst.inst.duration],
         yvals=[-formatter["label_offset.pulse_name"]],
         text=systematic_name,
         latex=latex_name,
@@ -224,7 +219,7 @@ def gen_ibmq_latex_waveform_name(
 
 
 def gen_waveform_max_value(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    parsed_inst: ParsedInstruction, formatter: Dict[str, Any]
 ) -> List[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
@@ -242,7 +237,7 @@ def gen_waveform_max_value(
     Returns:
         List of `TextData` drawings.
     """
-    if data.is_opaque:
+    if parsed_inst.is_opaque:
         return []
 
     style = {
@@ -253,21 +248,21 @@ def gen_waveform_max_value(
     }
 
     # only pulses.
-    if isinstance(data.inst, instructions.Play):
+    if isinstance(parsed_inst.inst, instructions.Play):
         # pulse
-        operand = data.inst.pulse
+        operand = parsed_inst.inst.pulse
         if isinstance(operand, pulse.ParametricPulse):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
-        xdata = np.arange(pulse_data.duration) + data.t0
+        xdata = np.arange(pulse_data.duration) + parsed_inst.t0
         ydata = pulse_data.samples
     else:
         return []
 
     # phase modulation
     if formatter["control.apply_phase_modulation"]:
-        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
+        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * parsed_inst.frame.phase)
     else:
         ydata = np.asarray(ydata, dtype=complex)
 
@@ -286,7 +281,7 @@ def gen_waveform_max_value(
         re_style.update(style)
         re_text = drawings.TextData(
             data_type=types.LabelType.PULSE_INFO,
-            channels=data.inst.channel,
+            channels=parsed_inst.inst.channel,
             xvals=[xdata[re_maxind]],
             yvals=[ydata.real[re_maxind]],
             text=max_val,
@@ -307,7 +302,7 @@ def gen_waveform_max_value(
         im_style.update(style)
         im_text = drawings.TextData(
             data_type=types.LabelType.PULSE_INFO,
-            channels=data.inst.channel,
+            channels=parsed_inst.inst.channel,
             xvals=[xdata[im_maxind]],
             yvals=[ydata.imag[im_maxind]],
             text=max_val,
@@ -526,12 +521,8 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
     except ValueError:
         return np.ones_like(data_array).astype(bool)
 
-
-def _parse_waveform(
-    data: types.PulseInstruction,
-) -> Union[types.ParsedInstruction, types.OpaqueShape]:
-    """A helper function that generates an array for the waveform with
-    instruction metadata.
+def _get_metadata(parsed_inst: ParsedInstruction) -> dict:
+    """A helper function that generates the metadata for plotting functions.
 
     Args:
         data: Instruction data set
@@ -542,7 +533,7 @@ def _parse_waveform(
     Returns:
         A data source to generate a drawing.
     """
-    inst = data.inst
+    inst = parsed_inst.inst
 
     meta = dict()
     if isinstance(inst, instructions.Play):
@@ -562,13 +553,13 @@ def _parse_waveform(
                     for key, val in params.items()
                 }
             )
-            if data.is_opaque:
+            if parsed_inst.is_opaque:
                 # parametric pulse with unbound parameter
                 if duration:
                     meta.update(
                         {
                             "duration (cycle time)": inst.duration,
-                            "duration (sec)": inst.duration * data.dt if data.dt else "N/A",
+                            "duration (sec)": inst.duration * parsed_inst.dt if parsed_inst.dt else "N/A",
                         }
                     )
                 else:
@@ -576,10 +567,10 @@ def _parse_waveform(
 
                 meta.update(
                     {
-                        "t0 (cycle time)": data.t0,
-                        "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
-                        "phase": data.frame.phase,
-                        "frequency": data.frame.freq,
+                        "t0 (cycle time)": parsed_inst.t0,
+                        "t0 (sec)": parsed_inst.t0 * parsed_inst.dt if parsed_inst.dt else "N/A",
+                        "phase": parsed_inst.frame.phase,
+                        "frequency": parsed_inst.frame.freq,
                         "name": inst.name,
                     }
                 )
@@ -587,20 +578,15 @@ def _parse_waveform(
                 return types.OpaqueShape(duration=duration, meta=meta)
             else:
                 # fixed shape parametric pulse
-                pulse_data = operand.get_waveform()
+                pass
         else:
             # waveform
-            pulse_data = operand
-        xdata = np.arange(pulse_data.duration) + data.t0
-        ydata = pulse_data.samples
+            pass
     elif isinstance(inst, instructions.Delay):
         # delay
-        xdata = np.arange(inst.duration) + data.t0
-        ydata = np.zeros(inst.duration)
+        pass
     elif isinstance(inst, instructions.Acquire):
         # acquire
-        xdata = np.arange(inst.duration) + data.t0
-        ydata = np.ones(inst.duration)
         acq_data = {
             "memory slot": inst.mem_slot.name,
             "register slot": inst.reg_slot.name if inst.reg_slot else "N/A",
@@ -617,13 +603,12 @@ def _parse_waveform(
     meta.update(
         {
             "duration (cycle time)": inst.duration,
-            "duration (sec)": inst.duration * data.dt if data.dt else "N/A",
-            "t0 (cycle time)": data.t0,
-            "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
-            "phase": data.frame.phase,
-            "frequency": data.frame.freq,
+            "duration (sec)": inst.duration * parsed_inst.dt if parsed_inst.dt else "N/A",
+            "t0 (cycle time)": parsed_inst.t0,
+            "t0 (sec)": parsed_inst.t0 * parsed_inst.dt if parsed_inst.dt else "N/A",
+            "phase": parsed_inst.frame.phase,
+            "frequency": parsed_inst.frame.freq,
             "name": inst.name,
         }
     )
-
-    return types.ParsedInstruction(xvals=xdata, yvals=ydata, meta=meta)
+    return meta

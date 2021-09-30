@@ -20,12 +20,13 @@ from qiskit.providers.basebackend import BaseBackend
 from qiskit import pulse, circuit
 from qiskit.pulse.instructions import Instruction
 
-from base_transforms import target_qobj_transform
-from pulse_instruction_types import PhaseFreqTuple, PulseInstruction, OpaqueShape
-from device_info import OpenPulseBackendInfo
+from .base_transforms import target_qobj_transform
+from .pulse_instruction_types import PhaseFreqTuple, PulseInstruction, OpaqueShape
+from .device_info import DrawerBackendInfo, OpenPulseBackendInfo
+from ..schedule import Schedule, ScheduleBlock
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
-ScheduleLike = Union[pulse.Schedule, pulse.ScheduleBlock, 
+ScheduleLike = Union[Schedule, ScheduleBlock, 
                      InstructionSched, Iterable[InstructionSched]]
 
 class ParsedInstruction:
@@ -33,14 +34,14 @@ class ParsedInstruction:
                  t0: int,
                  dt: float,
                  frame: PhaseFreqTuple, 
-                 data: Union[Instruction, List[Instruction]], 
+                 inst: Union[Instruction, List[Instruction]], 
                  is_opaque: bool, 
                  xdata: np.ndarray = None,
                  ydata: np.ndarray = None):
         self.t0 = t0
         self.dt = dt
         self.frame = frame
-        self.data = data
+        self.inst = inst
         self.is_opaque = is_opaque
         self.xdata = xdata
         self.ydata = ydata
@@ -83,7 +84,7 @@ class ChannelTransforms:
     def load_program(cls, 
                      program: ScheduleLike,
                      channel: pulse.channels.Channel,
-                     backend: Optional[BaseBackend] = None
+                     device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None
                      ) -> 'ChannelTransforms':
         """Loads a pulse program represented by ``Schedule``.
 
@@ -112,8 +113,9 @@ class ChannelTransforms:
                 frames[t0].append(inst)
         
         chan_transforms = cls(waveforms, frames, channels)   
-        if backend is not None:
-            device = OpenPulseBackendInfo.create_from_backend(backend)
+        if device is not None:
+            if isinstance(device, BaseBackend):
+                device = OpenPulseBackendInfo.create_from_backend(device)
             dt = device.dt
             init_frequency = device.get_channel_frequency(channel)
             chan_transforms.set_config(dt=dt, init_frequency=init_frequency)
@@ -275,7 +277,7 @@ class ChannelTransforms:
         Returns:
             A data source to generate a drawing.
         """
-        inst = parsed_inst.data
+        inst = parsed_inst.inst
 
         if isinstance(inst, pulse.Play):
             # pulse
@@ -325,6 +327,8 @@ class ChannelTransforms:
     def _apply_frequency(parsed_inst: ParsedInstruction):
         """Applies frequency shifts to a ``ParsedInstruction``."""
         frequency = parsed_inst.frame.freq
+        # print(f'frequency = {frequency}')
         xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
+        # print(f'xdata = {2 * np.pi * frequency * xdata}')
         parsed_inst.ydata *= np.exp(1j * 2 * np.pi * frequency * xdata)
         return parsed_inst

@@ -74,8 +74,9 @@ from typing import Union, List, Tuple, Iterator, Optional
 import numpy as np
 from qiskit import pulse
 from qiskit.pulse.transforms import target_qobj_transform
+from qiskit.pulse.transforms.channel_transforms import ChannelTransforms
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import events, types, drawings, device_info
+from qiskit.visualization.pulse_v2 import types, drawings, device_info
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
 
 
@@ -469,24 +470,19 @@ class Chart:
             program: Pulse schedule to load.
             chan: A pulse channels associated with this instance.
         """
-        chan_events = events.ChannelEvents.load_program(program, chan)
-        chan_events.set_config(
-            dt=self.parent.device.dt,
-            init_frequency=self.parent.device.get_channel_frequency(chan),
-            init_phase=0,
-        )
+        chan_transforms = ChannelTransforms.load_program(program, chan, device=self.parent.device)
 
-        # create objects associated with waveform
+        # create objects associated with waveforms
         for gen in self.parent.generator["waveform"]:
-            waveforms = chan_events.get_waveforms()
+            parsed_instructions = chan_transforms.get_parsed_instructions()
             obj_generator = partial(gen, formatter=self.parent.formatter, device=self.parent.device)
-            drawing_items = [obj_generator(waveform) for waveform in waveforms]
+            drawing_items = [obj_generator(parsed_inst) for parsed_inst in parsed_instructions]
             for drawing_item in list(chain.from_iterable(drawing_items)):
                 self.add_data(drawing_item)
 
         # create objects associated with frame change
         for gen in self.parent.generator["frame"]:
-            frames = chan_events.get_frame_changes()
+            frames = chan_transforms.get_frame_changes()
             obj_generator = partial(gen, formatter=self.parent.formatter, device=self.parent.device)
             drawing_items = [obj_generator(frame) for frame in frames]
             for drawing_item in list(chain.from_iterable(drawing_items)):

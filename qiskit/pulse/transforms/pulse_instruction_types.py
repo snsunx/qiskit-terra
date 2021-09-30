@@ -21,6 +21,7 @@ from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 
 import numpy as np
 from qiskit import pulse
+from ..instructions import Instruction
 
 
 class PhaseFreqTuple(NamedTuple):
@@ -39,7 +40,7 @@ PulseInstruction = NamedTuple(
         ("t0", int),
         ("dt", Optional[float]),
         ("frame", PhaseFreqTuple),
-        ("inst", Union[pulse.Instruction, List[pulse.Instruction]]),
+        ("inst", Union[Instruction, List[Instruction]]),
         ("is_opaque", bool),
     ],
 )
