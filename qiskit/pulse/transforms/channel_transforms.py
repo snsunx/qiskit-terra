@@ -15,31 +15,34 @@ from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List
 
 import numpy as np
 
-from qiskit.pulse import channels
 from qiskit.providers.basebackend import BaseBackend
-from qiskit import pulse, circuit
-from qiskit.pulse.instructions import Instruction
-
-from .base_transforms import target_qobj_transform
-from .instruction_types import PhaseFreqTuple, OpaqueShape, ParsedInstruction
-from .device_info import DrawerBackendInfo, OpenPulseBackendInfo
-from ..schedule import Schedule, ScheduleBlock
+from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.library import ParametricPulse, Waveform
+from qiskit.pulse.instructions import (
+    Instruction, Play, Delay, Acquire, 
+    SetFrequency, ShiftFrequency, SetPhase, ShiftPhase)
+from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+from qiskit.pulse.transforms.instruction_types import (
+    PhaseFreqTuple, OpaqueShape, ParsedInstruction)
+from qiskit.pulse.transforms.device_info import OpenPulseBackendInfo
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 ScheduleLike = Union[Schedule, ScheduleBlock, 
                      InstructionSched, Iterable[InstructionSched]]
-WaveformInstruction = Union[pulse.Play, pulse.Delay, pulse.Acquire]
-FrameInstruction = Union[pulse.SetFrequency, pulse.ShiftFrequency, 
-                         pulse.SetPhase, pulse.ShiftPhase]
+WaveformInstruction = Union[Play, Delay, Acquire]
+FrameInstruction = Union[SetFrequency, ShiftFrequency,
+                         SetPhase, ShiftPhase]
 
 class ChannelTransforms:
     """Channel transform manager."""
 
     def __init__(
         self,
-        waveforms: Dict[int, pulse.Instruction],
-        frames: Dict[int, List[pulse.Instruction]],
-        channel: pulse.channels.Channel,
+        waveforms: Dict[int, Instruction],
+        frames: Dict[int, List[Instruction]],
+        channel: Channel,
         dt: Optional[int] = None,
         init_phase: Optional[float] = None,
         init_frequency: Optional[float] = None
@@ -65,7 +68,7 @@ class ChannelTransforms:
     @classmethod
     def load_program(cls, 
                      program: ScheduleLike,
-                     channel: pulse.channels.Channel,
+                     channel: Channel,
                      device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None
                      ) -> 'ChannelTransforms':
         """Loads a pulse program represented by ``Schedule``.
@@ -94,7 +97,7 @@ class ChannelTransforms:
             elif isinstance(inst, FrameInstruction.__args__):
                 frames[t0].append(inst)
         
-        chan_transforms = cls(waveforms, frames, channels)   
+        chan_transforms = cls(waveforms, frames, channel)   
         if device is not None:
             if isinstance(device, BaseBackend):
                 device = OpenPulseBackendInfo.create_from_backend(device)
@@ -122,7 +125,7 @@ class ChannelTransforms:
 
     def get_parsed_instructions(self, apply_frequency: bool = False
                                 ) -> Iterator[ParsedInstruction]:
-        """Returns waveform type instructions with frame."""
+        """Returns waveform-type instructions bound with frames."""
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
         sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
 
@@ -139,15 +142,15 @@ class ChannelTransforms:
                 )
 
             # Convert parameter expression into float
-            if isinstance(phase, circuit.ParameterExpression):
+            if isinstance(phase, ParameterExpression):
                 phase = float(phase.bind({param: 0 for param in phase.parameters}))
-            if isinstance(frequency, circuit.ParameterExpression):
+            if isinstance(frequency, ParameterExpression):
                 frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
 
             frame = PhaseFreqTuple(phase, frequency)
 
             # Check if pulse has unbound parameters
-            if isinstance(inst, pulse.Play):
+            if isinstance(inst, Play):
                 is_opaque = inst.pulse.is_parameterized()
 
             parsed_inst = ParsedInstruction(t0, self._dt, frame, inst, is_opaque)
@@ -159,7 +162,7 @@ class ChannelTransforms:
             yield parsed_inst
 
     def get_frame_changes(self) -> Iterator[ParsedInstruction]:
-        """Returns frame change type instructions with total frame change amount."""
+        """Returns frame-change-type instructions with total frame change amount."""
         # TODO: parse parametrised FCs correctly
 
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0])
@@ -179,18 +182,38 @@ class ChannelTransforms:
             frame = PhaseFreqTuple(phase - pre_phase, frequency - pre_frequency)
 
             # remove parameter expressions to find if next frame is parameterized
-            if isinstance(phase, circuit.ParameterExpression):
+            if isinstance(phase, ParameterExpression):
                 phase = float(phase.bind({param: 0 for param in phase.parameters}))
                 is_opaque = True
-            if isinstance(frequency, circuit.ParameterExpression):
+            if isinstance(frequency, ParameterExpression):
                 frequency = float(frequency.bind({param: 0 for param in frequency.parameters}))
                 is_opaque = True
 
             yield ParsedInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
+    def get_waveform(self, apply_frequency: bool = False) -> Waveform:
+        """Returns the pulse waveform on the channel.
+        
+        Args:
+            Whether frequency shifts are applied.
+        
+        Returns:
+            The pulse waveform on the channel.
+        """
+        parsed_instructions = list(self.get_parsed_instructions(
+            apply_frequency=apply_frequency))
+        max_xval = parsed_instructions[-1].xdata[-1]
+        samples = np.zeros((max_xval + 1,), dtype=complex)
+
+        for parsed_inst in parsed_instructions:
+            xdata = parsed_inst.xdata
+            ydata = parsed_inst.ydata
+            samples[xdata] += ydata
+        return Waveform(samples=samples)
+
     @staticmethod
     def _calculate_current_frame(
-        frame_changes: List[pulse.instructions.Instruction], phase: float, frequency: float
+        frame_changes: List[Instruction], phase: float, frequency: float
     ) -> Tuple[float, float]:
         """Calculates the current frame from the previous frame.
 
@@ -206,69 +229,38 @@ class ChannelTransforms:
         """
 
         for frame_change in frame_changes:
-            if isinstance(frame_change, pulse.instructions.SetFrequency):
+            if isinstance(frame_change, SetFrequency):
                 frequency = frame_change.frequency
-            elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
+            elif isinstance(frame_change, ShiftFrequency):
                 frequency += frame_change.frequency
-            elif isinstance(frame_change, pulse.instructions.SetPhase):
+            elif isinstance(frame_change, SetPhase):
                 phase = frame_change.phase
-            elif isinstance(frame_change, pulse.instructions.ShiftPhase):
+            elif isinstance(frame_change, ShiftPhase):
                 phase += frame_change.phase
 
         return phase, frequency
 
     @staticmethod
-    def _calculate_current_frame(
-        frame_changes: List[pulse.instructions.Instruction], phase: float, frequency: float
-    ) -> Tuple[float, float]:
-        """Calculates the current frame from the previous frame.
-
-        If parameter is unbound phase or frequency accumulation with this instruction is skipped.
-
-        Args:
-            frame_changes: List of frame change instructions at a specific time.
-            phase: Phase of previous frame.
-            frequency: Frequency of previous frame.
-
-        Returns:
-            Phase and frequency of new frame.
-        """
-
-        for frame_change in frame_changes:
-            if isinstance(frame_change, pulse.instructions.SetFrequency):
-                frequency = frame_change.frequency
-            elif isinstance(frame_change, pulse.instructions.ShiftFrequency):
-                frequency += frame_change.frequency
-            elif isinstance(frame_change, pulse.instructions.SetPhase):
-                phase = frame_change.phase
-            elif isinstance(frame_change, pulse.instructions.ShiftPhase):
-                phase += frame_change.phase
-
-        return phase, frequency
-
-    @staticmethod
-    def _parse_waveform(
-        parsed_inst: ParsedInstruction,
-    ) -> Union[ParsedInstruction]:
+    def _parse_waveform(parsed_inst: ParsedInstruction) -> ParsedInstruction:
         """A helper function that generates an array for the waveform with
         instruction metadata.
 
         Args:
-            data: Instruction data set
+            A sorted instruction before waveform parsing.
 
         Returns:
-            A data source to generate a drawing.
+            A sorted instruction with parsed xdata and ydata.
         """
         inst = parsed_inst.inst
 
-        if isinstance(inst, pulse.Play):
+        if isinstance(inst, Play):
             # pulse
             operand = inst.pulse
-            if isinstance(operand, pulse.ParametricPulse):
+            if isinstance(operand, ParametricPulse):
                 # parametric pulse
                 params = operand.parameters
                 duration = params.pop("duration", None)
-                if isinstance(duration, circuit.Parameter):
+                if isinstance(duration, Parameter):
                     duration = None
 
                 if parsed_inst.is_opaque:
@@ -282,10 +274,10 @@ class ChannelTransforms:
                 waveform = operand
             xdata = np.arange(waveform.duration) + parsed_inst.t0
             ydata = waveform.samples
-        elif isinstance(inst, pulse.Delay):
+        elif isinstance(inst, Delay):
             xdata = np.arange(inst.duration) + parsed_inst.t0
             ydata = np.zeros(inst.duration)
-        elif isinstance(inst, pulse.Acquire):
+        elif isinstance(inst, Acquire):
             xdata = np.arange(inst.duration) + parsed_inst.t0
             ydata = np.ones(inst.duration)
         else:
@@ -299,18 +291,30 @@ class ChannelTransforms:
         return parsed_inst
 
     @staticmethod
-    def _apply_phase(parsed_inst: ParsedInstruction):
-        """Applies phase shifts to a ``ParsedInstruction``."""
+    def _apply_phase(parsed_inst: ParsedInstruction) -> ParsedInstruction:
+        """Applies phase shifts to a ``ParsedInstruction``.
+        
+        Args:
+            A parsed instruction.
+            
+        Returns:
+            A parsed instruction with phase shifts applied to ydata.
+        """
         phase = parsed_inst.frame.phase
         parsed_inst.ydata *= np.exp(1j * phase)
         return parsed_inst
 
     @staticmethod
-    def _apply_frequency(parsed_inst: ParsedInstruction):
-        """Applies frequency shifts to a ``ParsedInstruction``."""
+    def _apply_frequency(parsed_inst: ParsedInstruction) -> ParsedInstruction:
+        """Applies frequency shifts to a ``ParsedInstruction``.
+        
+        Args:
+            A parsed instruction.
+            
+        Returns:
+            A parsed instruction with frequency shifts applied to ydata.
+        """
         frequency = parsed_inst.frame.freq
-        # print(f'frequency = {frequency}')
         xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
-        # print(f'xdata = {2 * np.pi * frequency * xdata}')
         parsed_inst.ydata *= np.exp(1j * 2 * np.pi * frequency * xdata)
         return parsed_inst
