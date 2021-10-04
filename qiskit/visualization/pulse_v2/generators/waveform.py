@@ -52,7 +52,7 @@ from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_filled_waveform_stepwise(
-    parsed_inst: ParsedInstruction, 
+    parsed_inst: ParsedInstruction,
     formatter: Dict[str, Any], device:
     device_info.DrawerBackendInfo
 ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
@@ -65,7 +65,7 @@ def gen_filled_waveform_stepwise(
         - The `fill_waveform` style is applied.
 
     Args:
-        data: Waveform instruction data to draw.
+        parsed_inst: Parsed instruction data to draw.
         formatter: Dictionary of stylesheet settings.
         device: Backend configuration.
 
@@ -89,7 +89,7 @@ def gen_filled_waveform_stepwise(
         ydata = parsed_inst.ydata
 
         return _draw_shaped_waveform(
-            xdata=xdata, ydata=ydata, meta=meta, 
+            xdata=xdata, ydata=ydata, meta=meta,
             channel=channel, formatter=formatter
         )
     else:
@@ -113,9 +113,9 @@ def gen_filled_waveform_stepwise(
 
 
 def gen_ibmq_latex_waveform_name(
-    parsed_inst: ParsedInstruction, 
+    parsed_inst: ParsedInstruction,
     formatter: Dict[str, Any],
-    device: device_info.DrawerBackendInfo 
+    device: device_info.DrawerBackendInfo
 ) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
@@ -139,7 +139,7 @@ def gen_ibmq_latex_waveform_name(
         the generator output may be the as-is pulse name.
 
     Args:
-        data: Waveform instruction data to draw.
+        parsed_inst: Parsed instruction data to draw.
         formatter: Dictionary of stylesheet settings.
         device: Backend configuration.
 
@@ -230,9 +230,8 @@ def gen_waveform_max_value(
         - The `annotate` style is applied.
 
     Args:
-        data: Waveform instruction data to draw.
+        parsed_inst: Parsed instruction data to draw.
         formatter: Dictionary of stylesheet settings.
-        device: Backend configuration.
 
     Returns:
         List of `TextData` drawings.
@@ -575,7 +574,7 @@ def _get_metadata(parsed_inst: ParsedInstruction) -> dict:
                     }
                 )
 
-                return types.OpaqueShape(duration=duration, meta=meta)
+                return meta
             else:
                 # fixed shape parametric pulse
                 pass

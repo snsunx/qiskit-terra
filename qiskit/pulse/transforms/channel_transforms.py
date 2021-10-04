@@ -15,7 +15,7 @@ the ``Instruction``s in a ``Schedule`` on a specific channel."""
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List, Any
+from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List
 import numpy as np
 
 from qiskit.providers.basebackend import BaseBackend
@@ -65,19 +65,9 @@ class ParsedInstruction:
     frame: PhaseFreqTuple
     inst: Union[Instruction, List[Instruction]]
     is_opaque: bool
+    duration: Optional[Union[int, Parameter]] = None
     xdata: np.ndarray = None
     ydata: np.ndarray = None
-
-@dataclass
-class OpaqueShape:
-    """Data to represent a pulse instruction with parameterized shape.
-
-    Args:
-        duration: Duration of instruction.
-        meta: Dictionary containing instruction details.
-    """
-    duration: np.ndarray
-    meta: Dict[str, Any]
 
 class ChannelTransforms:
     """Channel transform manager."""
@@ -318,7 +308,8 @@ class ChannelTransforms:
 
                 if parsed_inst.is_opaque:
                     # parametric pulse with unbound parameter
-                    return OpaqueShape(duration=duration)
+                    parsed_inst.duration = duration
+                    return parsed_inst
                 else:
                     # fixed shape parametric pulse
                     waveform = operand.get_waveform()
