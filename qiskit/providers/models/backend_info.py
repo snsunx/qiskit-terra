@@ -42,7 +42,7 @@ from qiskit import pulse
 from qiskit.providers import BaseBackend, BackendConfigurationError
 
 
-class DrawerBackendInfo(ABC):
+class BackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
 
     def __init__(
@@ -92,7 +92,7 @@ class DrawerBackendInfo(ABC):
         return self._chan_freq_map.get(chan, None)
 
 
-class OpenPulseBackendInfo(DrawerBackendInfo):
+class OpenPulseBackendInfo(BackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod

@@ -10,30 +10,74 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from collections import defaultdict
-from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List
+"""This module defines the ``ChannelTransforms`` class, which parses
+the ``Instruction``s in a ``Schedule`` on a specific channel."""
 
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List, Any
 import numpy as np
 
 from qiskit.providers.basebackend import BaseBackend
+from qiskit.providers.models.backend_info import OpenPulseBackendInfo
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library import ParametricPulse, Waveform
 from qiskit.pulse.instructions import (
-    Instruction, Play, Delay, Acquire, 
+    Instruction, Play, Delay, Acquire,
     SetFrequency, ShiftFrequency, SetPhase, ShiftPhase)
 from qiskit.pulse.transforms.base_transforms import target_qobj_transform
-from qiskit.pulse.transforms.instruction_types import (
-    PhaseFreqTuple, OpaqueShape, ParsedInstruction)
-from qiskit.pulse.transforms.device_info import OpenPulseBackendInfo
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
-ScheduleLike = Union[Schedule, ScheduleBlock, 
+ScheduleLike = Union[Schedule, ScheduleBlock,
                      InstructionSched, Iterable[InstructionSched]]
 WaveformInstruction = Union[Play, Delay, Acquire]
 FrameInstruction = Union[SetFrequency, ShiftFrequency,
                          SetPhase, ShiftPhase]
+
+@dataclass
+class PhaseFreqTuple:
+    """Data to represent a set of frequency and phase values.
+
+    Args:
+        phase: Phase value in rad.
+        freq: Frequency value in Hz.
+    """
+    phase: float
+    freq: float
+
+@dataclass
+class ParsedInstruction:
+    """A class to store parsed pulse instructions.
+
+    Args:
+        t0: A time when the instruction is issued.
+        dt: System cycle time.
+        frame: A reference frame to run instruction.
+        inst: Pulse instruction.
+        is_opaque: If there is any unbound parameters.
+        xdata: The time point data for plotting.
+        ydata: The pulse amplitude data for plotting.
+    """
+    t0: int
+    dt: float
+    frame: PhaseFreqTuple
+    inst: Union[Instruction, List[Instruction]]
+    is_opaque: bool
+    xdata: np.ndarray = None
+    ydata: np.ndarray = None
+
+@dataclass
+class OpaqueShape:
+    """Data to represent a pulse instruction with parameterized shape.
+
+    Args:
+        duration: Duration of instruction.
+        meta: Dictionary containing instruction details.
+    """
+    duration: np.ndarray
+    meta: Dict[str, Any]
 
 class ChannelTransforms:
     """Channel transform manager."""
@@ -66,7 +110,7 @@ class ChannelTransforms:
         self._dt = dt or 0
 
     @classmethod
-    def load_program(cls, 
+    def load_program(cls,
                      program: ScheduleLike,
                      channel: Channel,
                      device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None
@@ -76,7 +120,7 @@ class ChannelTransforms:
         Args:
             program: Target ``Schedule`` to visualize.
             channel: The channel managed by this instance.
-            backend: The device to extract parameters from.
+            device: The device to extract parameters from.
 
         Returns:
             The channel transform manager for the specified channel.
@@ -96,8 +140,8 @@ class ChannelTransforms:
                 waveforms[t0] = inst
             elif isinstance(inst, FrameInstruction.__args__):
                 frames[t0].append(inst)
-        
-        chan_transforms = cls(waveforms, frames, channel)   
+
+        chan_transforms = cls(waveforms, frames, channel)
         if device is not None:
             if isinstance(device, BaseBackend):
                 device = OpenPulseBackendInfo.create_from_backend(device)
@@ -125,7 +169,14 @@ class ChannelTransforms:
 
     def get_parsed_instructions(self, apply_frequency: bool = False
                                 ) -> Iterator[ParsedInstruction]:
-        """Returns waveform-type instructions bound with frames."""
+        """Returns parsed instructions with phase and frequency shifts.
+
+        Args:
+            apply_frequency: Whether to apply frequency shifts to the waveform.
+
+        Yields:
+            An iterator of parsed instructions.
+        """
         sorted_frame_changes = sorted(self._frames.items(), key=lambda x: x[0], reverse=True)
         sorted_waveforms = sorted(self._waveforms.items(), key=lambda x: x[0])
 
@@ -193,10 +244,10 @@ class ChannelTransforms:
 
     def get_waveform(self, apply_frequency: bool = False) -> Waveform:
         """Returns the pulse waveform on the channel.
-        
+
         Args:
             Whether frequency shifts are applied.
-        
+
         Returns:
             The pulse waveform on the channel.
         """
@@ -242,14 +293,16 @@ class ChannelTransforms:
 
     @staticmethod
     def _parse_waveform(parsed_inst: ParsedInstruction) -> ParsedInstruction:
-        """A helper function that generates an array for the waveform with
-        instruction metadata.
+        """A helper function that generates an array for the waveform.
 
         Args:
             A sorted instruction before waveform parsing.
 
         Returns:
             A sorted instruction with parsed xdata and ydata.
+
+        Raises:
+            TypeError: When invalid instruction type is loaded.
         """
         inst = parsed_inst.inst
 
@@ -293,10 +346,10 @@ class ChannelTransforms:
     @staticmethod
     def _apply_phase(parsed_inst: ParsedInstruction) -> ParsedInstruction:
         """Applies phase shifts to a ``ParsedInstruction``.
-        
+
         Args:
             A parsed instruction.
-            
+
         Returns:
             A parsed instruction with phase shifts applied to ydata.
         """
@@ -307,10 +360,10 @@ class ChannelTransforms:
     @staticmethod
     def _apply_frequency(parsed_inst: ParsedInstruction) -> ParsedInstruction:
         """Applies frequency shifts to a ``ParsedInstruction``.
-        
+
         Args:
             A parsed instruction.
-            
+
         Returns:
             A parsed instruction with frequency shifts applied to ydata.
         """
