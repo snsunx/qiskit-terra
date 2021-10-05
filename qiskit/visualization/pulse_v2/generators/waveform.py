@@ -17,7 +17,7 @@
 A collection of functions that generate drawings from formatted input data.
 See py:mod:`qiskit.visualization.pulse_v2.types` for more info on the required data.
 
-In this module the input data is `types.PulseInstruction`.
+In this module the input data is `ParsedInstruction`.
 
 An end-user can write arbitrary functions that generate custom drawings.
 Generators in this module are called with the `formatter` and `device` kwargs.
@@ -27,7 +27,7 @@ The format of generator is restricted to:
 
     ```python
 
-    def my_object_generator(data: PulseInstruction,
+    def my_object_generator(parsed_inst: ParsedInstruction,
                             formatter: Dict[str, Any],
                             device: BackendInfo) -> List[ElementaryData]:
         pass
@@ -53,8 +53,8 @@ from qiskit.visualization.pulse_v2 import drawings, types
 
 def gen_filled_waveform_stepwise(
     parsed_inst: ParsedInstruction,
-    formatter: Dict[str, Any], device:
-    device_info.BackendInfo
+    formatter: Dict[str, Any], 
+    device: device_info.BackendInfo
 ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
@@ -248,22 +248,10 @@ def gen_waveform_max_value(
 
     # only pulses.
     if isinstance(parsed_inst.inst, instructions.Play):
-        # pulse
-        operand = parsed_inst.inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
-            pulse_data = operand.get_waveform()
-        else:
-            pulse_data = operand
-        xdata = np.arange(pulse_data.duration) + parsed_inst.t0
-        ydata = pulse_data.samples
+        xdata = parsed_inst.xdata
+        ydata = parsed_inst.ydata
     else:
         return []
-
-    # phase modulation
-    if formatter["control.apply_phase_modulation"]:
-        ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * parsed_inst.frame.phase)
-    else:
-        ydata = np.asarray(ydata, dtype=complex)
 
     texts = []
 

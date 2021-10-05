@@ -194,11 +194,8 @@ class ChannelTransforms:
             if isinstance(inst, Play):
                 is_opaque = inst.pulse.is_parameterized()
 
-            parsed_inst = self._parse_waveform(t0, self._dt, frame, inst, is_opaque, 
+            parsed_inst = self._parse_waveform(t0, self._dt, frame, inst, is_opaque,
                                                apply_frequency=apply_frequency)
-            #parsed_inst = self._apply_phase(parsed_inst)
-            #if apply_frequency:
-            #    parsed_inst = self._apply_frequency(parsed_inst)
 
             yield parsed_inst
 
@@ -236,7 +233,7 @@ class ChannelTransforms:
         """Returns the pulse waveform on the channel.
 
         Args:
-            Whether frequency shifts are applied.
+            Whether frequency modulation is applied.
 
         Returns:
             The pulse waveform on the channel.
@@ -286,7 +283,11 @@ class ChannelTransforms:
         """A helper function that generates an array for the waveform.
 
         Args:
-            A sorted instruction before waveform parsing.
+            t0: A time when the instruction is issued.
+            dt: System cycle time.
+            frame: A reference frame to run instruction.
+            inst: Pulse instruction.
+            is_opaque: If there is any unbound parameters.
 
         Returns:
             A sorted instruction with parsed xdata and ydata.
@@ -333,43 +334,13 @@ class ChannelTransforms:
         parsed_inst.xdata = xdata
         parsed_inst.ydata = ydata
 
+        # Apply phase modulation
         phase = parsed_inst.frame.phase
         parsed_inst.ydata *= np.exp(1j * phase)
+
+        # Optionally apply frequency modulation
         if apply_frequency:
             freq = parsed_inst.frame.freq
             xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
             parsed_inst.ydata *= np.exp(1j * 2 * np.pi * freq * xdata)
         return parsed_inst
-
-    '''
-    @staticmethod
-    def _apply_phase(parsed_inst: ParsedInstruction) -> ParsedInstruction:
-        """Applies phase shifts to a ``ParsedInstruction``.
-
-        Args:
-            A parsed instruction.
-
-        Returns:
-            A parsed instruction with phase shifts applied to ydata.
-        """
-        print("####################### Phase applied")
-        phase = parsed_inst.frame.phase
-        print(np.exp(1j * phase))
-        parsed_inst.ydata *= np.exp(1j * phase)
-        return parsed_inst
-
-    @staticmethod
-    def _apply_frequency(parsed_inst: ParsedInstruction) -> ParsedInstruction:
-        """Applies frequency shifts to a ``ParsedInstruction``.
-
-        Args:
-            A parsed instruction.
-
-        Returns:
-            A parsed instruction with frequency shifts applied to ydata.
-        """
-        frequency = parsed_inst.frame.freq
-        xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
-        parsed_inst.ydata *= np.exp(1j * 2 * np.pi * frequency * xdata)
-        return parsed_inst
-        '''

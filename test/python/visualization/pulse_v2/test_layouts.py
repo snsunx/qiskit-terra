@@ -14,8 +14,8 @@
 
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import layouts, device_info
-
+from qiskit.visualization.pulse_v2 import layouts
+from qiskit.pulse import device_info
 
 class TestChannelArrangement(QiskitTestCase):
     """Tests for channel mapping functions."""
@@ -246,3 +246,7 @@ class TestFigureTitle(QiskitTestCase):
         out = layouts.detail_title(self.prog, self.device)
 
         self.assertEqual(out, ref_title)
+
+if __name__ == '__main__':
+	import unittest
+	unittest.main()

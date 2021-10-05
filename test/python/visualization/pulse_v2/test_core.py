@@ -18,8 +18,9 @@ import numpy as np
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, stylesheet, device_info, drawings, types, layouts
-
+from qiskit.visualization.pulse_v2 import core, stylesheet, drawings, types, layouts
+from qiskit.pulse import device_info
+from qiskit.pulse.transforms.channel_transforms import ParsedInstruction
 
 class TestChart(QiskitTestCase):
     """Tests for chart."""
@@ -339,7 +340,7 @@ class TestDrawCanvas(QiskitTestCase):
 
         yield from zip(names, chans)
 
-    def generate_dummy_obj(self, data: types.PulseInstruction, **kwargs):
+    def generate_dummy_obj(self, data: ParsedInstruction, **kwargs):
         dummy_obj = drawings.ElementaryData(
             data_type="test",
             xvals=np.arange(data.inst.pulse.duration),
@@ -380,3 +381,7 @@ class TestDrawCanvas(QiskitTestCase):
 
         ref_scale = {pulse.DriveChannel(0): 5, pulse.DriveChannel(1): 5}
         self.assertDictEqual(canvas.chan_scales, ref_scale)
+
+if __name__ == '__main__':
+	import unittest
+	unittest.main()

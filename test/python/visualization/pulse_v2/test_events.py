@@ -14,7 +14,7 @@
 
 from qiskit import pulse, circuit
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import events
+from qiskit.pulse.transforms.channel_transforms import ChannelTransforms
 
 
 class TestChannelEvents(QiskitTestCase):
@@ -30,10 +30,10 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(10, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
         sched = sched.insert(10, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
+        chan_transforms = ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
 
         # check waveform data
-        waveforms = list(ch_events.get_waveforms())
+        waveforms = list(chan_transforms.get_parsed_instructions())
         inst_data0 = waveforms[0]
         self.assertEqual(inst_data0.t0, 0)
         self.assertEqual(inst_data0.frame.phase, 3.14)
@@ -47,7 +47,7 @@ class TestChannelEvents(QiskitTestCase):
         self.assertEqual(inst_data1.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
 
         # check frame data
-        frames = list(ch_events.get_frame_changes())
+        frames = list(chan_transforms.get_frame_changes())
         inst_data0 = frames[0]
         self.assertEqual(inst_data0.t0, 0)
         self.assertEqual(inst_data0.frame.phase, 3.14)
@@ -67,8 +67,8 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
 
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        frames = list(ch_events.get_frame_changes())
+        chan_transforms = ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
+        frames = list(chan_transforms.get_frame_changes())
         inst_data0 = frames[0]
         self.assertAlmostEqual(inst_data0.frame.phase, 3.14)
 
@@ -77,8 +77,8 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
         sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
 
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        frames = list(ch_events.get_frame_changes())
+        chan_transforms = ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
+        frames = list(chan_transforms.get_frame_changes())
         inst_data0 = frames[0]
         self.assertAlmostEqual(inst_data0.frame.phase, 1.57)
 
@@ -88,9 +88,9 @@ class TestChannelEvents(QiskitTestCase):
         sched = sched.insert(0, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
         sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
 
-        ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
-        ch_events.set_config(dt=0.1, init_frequency=3.0, init_phase=0)
-        frames = list(ch_events.get_frame_changes())
+        chan_transforms = ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
+        chan_transforms.set_config(dt=0.1, init_frequency=3.0, init_phase=0)
+        frames = list(chan_transforms.get_frame_changes())
 
         inst_data0 = frames[0]
         self.assertAlmostEqual(inst_data0.frame.freq, 1.0)
@@ -104,11 +104,11 @@ class TestChannelEvents(QiskitTestCase):
 
         test_waveform = pulse.Play(pulse.Constant(10, param), pulse.DriveChannel(0))
 
-        ch_events = events.ChannelEvents(
+        chan_transforms = ChannelTransforms(
             waveforms={0: test_waveform}, frames={}, channel=pulse.DriveChannel(0)
         )
 
-        pulse_inst = list(ch_events.get_waveforms())[0]
+        pulse_inst = list(chan_transforms.get_parsed_instructions())[0]
 
         self.assertTrue(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.inst, test_waveform)
@@ -126,20 +126,20 @@ class TestChannelEvents(QiskitTestCase):
         test_fc2 = pulse.ShiftPhase(1.57, pulse.DriveChannel(0))
         test_waveform = pulse.Play(pulse.Constant(10, 0.1), pulse.DriveChannel(0))
 
-        ch_events = events.ChannelEvents(
+        chan_transforms = ChannelTransforms(
             waveforms={0: test_waveform},
             frames={0: [test_fc1, test_fc2]},
             channel=pulse.DriveChannel(0),
         )
 
         # waveform frame
-        pulse_inst = list(ch_events.get_waveforms())[0]
+        pulse_inst = list(chan_transforms.get_parsed_instructions())[0]
 
         self.assertFalse(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.frame.phase, 1.57)
 
         # framechange
-        pulse_inst = list(ch_events.get_frame_changes())[0]
+        pulse_inst = list(chan_transforms.get_frame_changes())[0]
 
         self.assertTrue(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.frame.phase, param + 1.57)
@@ -158,6 +158,10 @@ class TestChannelEvents(QiskitTestCase):
         test_sched += pulse.Delay(1, ch)
         test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
 
-        ch_events = events.ChannelEvents.load_program(test_sched, ch)
+        chan_transforms = ChannelTransforms.load_program(test_sched, ch)
 
-        self.assertEqual(len(list(ch_events.get_waveforms())), 4)
+        self.assertEqual(len(list(chan_transforms.get_parsed_instructions())), 4)
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

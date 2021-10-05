@@ -205,3 +205,7 @@ class TestDrawingObjects(QiskitTestCase):
         )
 
         self.assertEqual(data1, data2)
+
+if __name__ == '__main__':
+	import unittest
+	unittest.main()

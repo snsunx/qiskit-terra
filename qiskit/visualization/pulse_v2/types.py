@@ -23,34 +23,6 @@ import numpy as np
 from qiskit import pulse
 
 
-class PhaseFreqTuple(NamedTuple):
-    phase: float
-    freq: float
-
-
-PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
-PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
-PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
-
-
-PulseInstruction = NamedTuple(
-    "InstructionTuple",
-    [
-        ("t0", int),
-        ("dt", Optional[float]),
-        ("frame", PhaseFreqTuple),
-        ("inst", Union[pulse.Instruction, List[pulse.Instruction]]),
-        ("is_opaque", bool),
-    ],
-)
-PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
-PulseInstruction.t0.__doc__ = "A time when the instruction is issued."
-PulseInstruction.dt.__doc__ = "System cycle time."
-PulseInstruction.frame.__doc__ = "A reference frame to run instruction."
-PulseInstruction.inst.__doc__ = "Pulse instruction."
-PulseInstruction.is_opaque.__doc__ = "If there is any unbound parameters."
-
-
 BarrierInstruction = NamedTuple(
     "Barrier", [("t0", int), ("dt", Optional[float]), ("channels", List[pulse.channels.Channel])]
 )
