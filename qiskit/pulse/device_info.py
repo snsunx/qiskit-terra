@@ -13,7 +13,7 @@
 """A collection of backend information formatted to generate drawing data.
 
 This instance will be provided to generator functions. The module provides an abstract
-class :py:class:``DrawerBackendInfo`` with necessary methods to generate drawing objects.
+class :py:class:``BackendInfo`` with necessary methods to generate drawing objects.
 
 Because the data structure of backend class may depend on providers, this abstract class
 has an abstract factory method `create_from_backend`. Each subclass should provide
@@ -42,7 +42,7 @@ from qiskit import pulse
 from qiskit.providers import BaseBackend, BackendConfigurationError
 
 
-class DrawerBackendInfo(ABC):
+class BackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
 
     def __init__(
@@ -92,7 +92,7 @@ class DrawerBackendInfo(ABC):
         return self._chan_freq_map.get(chan, None)
 
 
-class OpenPulseBackendInfo(DrawerBackendInfo):
+class OpenPulseBackendInfo(BackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod

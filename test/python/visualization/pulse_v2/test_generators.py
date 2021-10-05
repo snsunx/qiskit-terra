@@ -18,14 +18,20 @@ import numpy as np
 
 from qiskit import pulse, circuit
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
+from qiskit.visualization.pulse_v2 import drawings, types, stylesheet
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
+from qiskit.pulse import device_info
+from qiskit.pulse.transforms.channel_transforms import ChannelTransforms, PhaseFreqTuple, ParsedInstruction
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
     """A helper function to create InstructionTuple."""
-    frame_info = types.PhaseFreqTuple(phase=phase, freq=freq)
-    return types.PulseInstruction(t0=t0, dt=dt, frame=frame_info, inst=inst, is_opaque=is_opaque)
+    frame = PhaseFreqTuple(phase=phase, freq=freq)
+    if isinstance(inst, (pulse.Play, pulse.Acquire, pulse.Delay)):
+        parsed_inst = ChannelTransforms._parse_waveform(t0, dt, frame, inst, is_opaque)
+    else:
+        parsed_inst = ParsedInstruction(t0, dt, frame, inst, is_opaque)
+    return parsed_inst
 
 
 class TestWaveformGenerators(QiskitTestCase):
@@ -80,36 +86,6 @@ class TestWaveformGenerators(QiskitTestCase):
         inds = waveform._find_consecutive_index(vec, resolution=1e-6)
 
         np.testing.assert_array_equal(inds, ref_inds)
-
-    def test_parse_waveform(self):
-        """Test helper function that parse waveform with Waveform instance."""
-        test_pulse = pulse.library.gaussian(10, 0.1, 3)
-
-        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
-
-        x, y, _ = waveform._parse_waveform(inst_data)
-
-        x_ref = np.arange(10, 20)
-        y_ref = test_pulse.samples
-
-        np.testing.assert_array_equal(x, x_ref)
-        np.testing.assert_array_equal(y, y_ref)
-
-    def test_parse_waveform_parametric(self):
-        """Test helper function that parse waveform with ParametricPulse instance."""
-        test_pulse = pulse.library.Gaussian(10, 0.1, 3)
-
-        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
-
-        x, y, _ = waveform._parse_waveform(inst_data)
-
-        x_ref = np.arange(10, 20)
-        y_ref = test_pulse.get_waveform().samples
-
-        np.testing.assert_array_equal(x, x_ref)
-        np.testing.assert_array_equal(y, y_ref)
 
     def test_gen_filled_waveform_stepwise_play(self):
         """Test gen_filled_waveform_stepwise with play instruction."""
@@ -304,7 +280,7 @@ class TestWaveformGenerators(QiskitTestCase):
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         objs = waveform.gen_waveform_max_value(
-            inst_data, formatter=self.formatter, device=self.device
+            inst_data, formatter=self.formatter
         )
 
         # type check
@@ -891,3 +867,7 @@ class TestBarrierGenerators(QiskitTestCase):
             "color": self.formatter["color.barrier"],
         }
         self.assertDictEqual(obj.styles, ref_style)
+
+if __name__ == '__main__':
+	import unittest
+	unittest.main()

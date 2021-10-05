@@ -29,7 +29,7 @@ The format of generator is restricted to:
 
     def my_object_generator(data: PulseInstruction,
                             formatter: Dict[str, Any],
-                            device: DrawerBackendInfo) -> List[ElementaryData]:
+                            device: BackendInfo) -> List[ElementaryData]:
         pass
     ```
 
@@ -41,13 +41,13 @@ from fractions import Fraction
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, device_info
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types
 
 
 def gen_formatted_phase(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label from provided frame instruction.
 
@@ -104,7 +104,7 @@ def gen_formatted_phase(
 
 
 def gen_formatted_freq_mhz(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate the formatted frequency change label from provided frame instruction.
 
@@ -152,7 +152,7 @@ def gen_formatted_freq_mhz(
 
 
 def gen_formatted_frame_values(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
@@ -228,7 +228,7 @@ def gen_formatted_frame_values(
 
 
 def gen_raw_operand_values_compact(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
@@ -284,7 +284,7 @@ def gen_raw_operand_values_compact(
 
 
 def gen_frame_symbol(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate a frame change symbol with instruction meta data from provided frame instruction.
 

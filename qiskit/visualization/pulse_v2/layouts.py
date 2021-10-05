@@ -31,7 +31,7 @@ The layout function is restricted to:
     ```python
     def my_channel_layout(channels: List[pulse.channels.Channel],
                           formatter: Dict[str, Any],
-                          device: DrawerBackendInfo
+                          device: pulse.device_info.BackendInfo
                           ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
         ordered_channels = []
         # arrange order of channels
@@ -68,7 +68,7 @@ This data provides input program and backend system configurations.
 
     ```python
     def my_figure_title(program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
-                        device: DrawerBackendInfo) -> str:
+                        device: pulse.device_info.BackendInfo) -> str:
 
         return 'title'
     ```
@@ -82,11 +82,9 @@ from typing import List, Dict, Any, Tuple, Iterator, Optional, Union
 import numpy as np
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import types
-from qiskit.visualization.pulse_v2.device_info import DrawerBackendInfo
-
 
 def channel_type_grouped_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
+    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -136,7 +134,7 @@ def channel_type_grouped_sort(
 
 
 def channel_index_grouped_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
+    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -198,7 +196,7 @@ def channel_index_grouped_sort(
 
 
 def channel_index_grouped_sort_u(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
+    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -261,7 +259,7 @@ def channel_index_grouped_sort_u(
 
 
 def qubit_index_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: DrawerBackendInfo
+    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -362,7 +360,7 @@ def time_map_in_ns(
 
 
 def detail_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: DrawerBackendInfo
+    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: pulse.device_info.BackendInfo
 ) -> str:
     """Layout function for generating figure title.
 
@@ -389,7 +387,7 @@ def detail_title(
 
 
 def empty_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: DrawerBackendInfo
+    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: pulse.device_info.BackendInfo
 ) -> str:
     """Layout function for generating an empty figure title."""
     return ""

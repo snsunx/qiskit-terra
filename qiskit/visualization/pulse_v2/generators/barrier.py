@@ -29,7 +29,7 @@ The format of generator is restricted to:
 
     def my_object_generator(data: BarrierInstruction,
                             formatter: Dict[str, Any],
-                            device: DrawerBackendInfo) -> List[ElementaryData]:
+                            device: BackendInfo) -> List[ElementaryData]:
         pass
     ```
 
@@ -39,11 +39,12 @@ the plotter API.
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types
+from qiskit.pulse import device_info
 
 
 def gen_barrier(
-    data: types.BarrierInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+    data: types.BarrierInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.LineData]:
     """Generate the barrier from provided relative barrier instruction.
 

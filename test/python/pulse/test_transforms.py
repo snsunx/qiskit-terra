@@ -17,6 +17,7 @@ from typing import List, Set
 import numpy as np
 
 from qiskit import pulse
+import qiskit
 from qiskit.pulse import (
     Play,
     Delay,
@@ -927,6 +928,39 @@ class TestRemoveSubroutines(QiskitTestCase):
 
         self.assertEqual(target, reference)
 
+class TestChannelTransforms(QiskitTestCase):
+    """Test channel transform functions"""
+    '''
+    def test_parse_waveform(self):
+        """Test helper function that parse waveform with Waveform instance."""
+        test_pulse = pulse.library.gaussian(10, 0.1, 3)
+
+        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
+
+        x, y, _ = transforms.ChannelTransforms._parse_waveform(inst_data)
+
+        x_ref = np.arange(10, 20)
+        y_ref = test_pulse.samples
+
+        np.testing.assert_array_equal(x, x_ref)
+        np.testing.assert_array_equal(y, y_ref)
+
+    def test_parse_waveform_parametric(self):
+        """Test helper function that parse waveform with ParametricPulse instance."""
+        test_pulse = pulse.library.Gaussian(10, 0.1, 3)
+
+        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
+
+        x, y, _ = waveform._parse_waveform(inst_data)
+
+        x_ref = np.arange(10, 20)
+        y_ref = test_pulse.get_waveform().samples
+
+        np.testing.assert_array_equal(x, x_ref)
+        np.testing.assert_array_equal(y, y_ref)
+    '''
 
 if __name__ == "__main__":
     unittest.main()

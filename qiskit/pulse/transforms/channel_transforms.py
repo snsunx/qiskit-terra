@@ -19,10 +19,10 @@ from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List
 import numpy as np
 
 from qiskit.providers.basebackend import BaseBackend
-from qiskit.providers.models.backend_info import OpenPulseBackendInfo
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
+from qiskit.pulse.device_info import OpenPulseBackendInfo
 from qiskit.pulse.library import ParametricPulse, Waveform
 from qiskit.pulse.instructions import (
     Instruction, Play, Delay, Acquire,
@@ -194,11 +194,11 @@ class ChannelTransforms:
             if isinstance(inst, Play):
                 is_opaque = inst.pulse.is_parameterized()
 
-            parsed_inst = ParsedInstruction(t0, self._dt, frame, inst, is_opaque)
-            parsed_inst = self._parse_waveform(parsed_inst)
-            parsed_inst = self._apply_phase(parsed_inst)
-            if apply_frequency:
-                parsed_inst = self._apply_frequency(parsed_inst)
+            parsed_inst = self._parse_waveform(t0, self._dt, frame, inst, is_opaque, 
+                                               apply_frequency=apply_frequency)
+            #parsed_inst = self._apply_phase(parsed_inst)
+            #if apply_frequency:
+            #    parsed_inst = self._apply_frequency(parsed_inst)
 
             yield parsed_inst
 
@@ -282,7 +282,7 @@ class ChannelTransforms:
         return phase, frequency
 
     @staticmethod
-    def _parse_waveform(parsed_inst: ParsedInstruction) -> ParsedInstruction:
+    def _parse_waveform(t0, dt, frame, inst, is_opaque, apply_frequency=False) -> ParsedInstruction:
         """A helper function that generates an array for the waveform.
 
         Args:
@@ -294,7 +294,7 @@ class ChannelTransforms:
         Raises:
             TypeError: When invalid instruction type is loaded.
         """
-        inst = parsed_inst.inst
+        parsed_inst = ParsedInstruction(t0, dt, frame, inst, is_opaque)
 
         if isinstance(inst, Play):
             # pulse
@@ -320,10 +320,10 @@ class ChannelTransforms:
             ydata = waveform.samples
         elif isinstance(inst, Delay):
             xdata = np.arange(inst.duration) + parsed_inst.t0
-            ydata = np.zeros(inst.duration)
+            ydata = np.zeros(inst.duration, dtype=complex)
         elif isinstance(inst, Acquire):
             xdata = np.arange(inst.duration) + parsed_inst.t0
-            ydata = np.ones(inst.duration)
+            ydata = np.ones(inst.duration, dtype=complex)
         else:
             raise TypeError(
                 "Unsupported instruction {inst} by "
@@ -332,8 +332,16 @@ class ChannelTransforms:
 
         parsed_inst.xdata = xdata
         parsed_inst.ydata = ydata
+
+        phase = parsed_inst.frame.phase
+        parsed_inst.ydata *= np.exp(1j * phase)
+        if apply_frequency:
+            freq = parsed_inst.frame.freq
+            xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
+            parsed_inst.ydata *= np.exp(1j * 2 * np.pi * freq * xdata)
         return parsed_inst
 
+    '''
     @staticmethod
     def _apply_phase(parsed_inst: ParsedInstruction) -> ParsedInstruction:
         """Applies phase shifts to a ``ParsedInstruction``.
@@ -344,7 +352,9 @@ class ChannelTransforms:
         Returns:
             A parsed instruction with phase shifts applied to ydata.
         """
+        print("####################### Phase applied")
         phase = parsed_inst.frame.phase
+        print(np.exp(1j * phase))
         parsed_inst.ydata *= np.exp(1j * phase)
         return parsed_inst
 
@@ -362,3 +372,4 @@ class ChannelTransforms:
         xdata = np.asarray(parsed_inst.xdata, dtype=float) * parsed_inst.dt
         parsed_inst.ydata *= np.exp(1j * 2 * np.pi * frequency * xdata)
         return parsed_inst
+        '''

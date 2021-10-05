@@ -29,7 +29,7 @@ The format of generator is restricted to:
 
     def my_object_generator(data: SnapshotInstruction,
                             formatter: Dict[str, Any],
-                            device: DrawerBackendInfo) -> List[ElementaryData]:
+                            device: BackendInfo) -> List[ElementaryData]:
         pass
     ```
 
@@ -39,13 +39,14 @@ the plotter API.
 """
 from typing import Dict, Any, List
 
-from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types
+from qiskit.pulse import device_info
 
 
 def gen_snapshot_name(
     data: types.SnapshotInstruction,
     formatter: Dict[str, Any],
-    device: device_info.DrawerBackendInfo,
+    device: device_info.BackendInfo,
 ) -> List[drawings.TextData]:
     """Generate the name of snapshot.
 
@@ -85,7 +86,7 @@ def gen_snapshot_name(
 def gen_snapshot_symbol(
     data: types.SnapshotInstruction,
     formatter: Dict[str, Any],
-    device: device_info.DrawerBackendInfo,
+    device: device_info.BackendInfo,
 ) -> List[drawings.TextData]:
     """Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 

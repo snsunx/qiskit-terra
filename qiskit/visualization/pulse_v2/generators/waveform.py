@@ -29,7 +29,7 @@ The format of generator is restricted to:
 
     def my_object_generator(data: PulseInstruction,
                             formatter: Dict[str, Any],
-                            device: DrawerBackendInfo) -> List[ElementaryData]:
+                            device: BackendInfo) -> List[ElementaryData]:
         pass
     ```
 
@@ -46,15 +46,15 @@ import numpy as np
 from qiskit import pulse, circuit
 from qiskit.pulse.transforms.channel_transforms import ParsedInstruction
 
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, device_info
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import drawings, types, device_info
+from qiskit.visualization.pulse_v2 import drawings, types
 
 
 def gen_filled_waveform_stepwise(
     parsed_inst: ParsedInstruction,
     formatter: Dict[str, Any], device:
-    device_info.DrawerBackendInfo
+    device_info.BackendInfo
 ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
@@ -115,7 +115,7 @@ def gen_filled_waveform_stepwise(
 def gen_ibmq_latex_waveform_name(
     parsed_inst: ParsedInstruction,
     formatter: Dict[str, Any],
-    device: device_info.DrawerBackendInfo
+    device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 

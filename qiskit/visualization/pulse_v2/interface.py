@@ -24,10 +24,10 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import BaseBackend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
+from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock, device_info
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from qiskit.visualization.pulse_v2 import core, stylesheet, types
 from qiskit.exceptions import MissingOptionalLibraryError
 
 

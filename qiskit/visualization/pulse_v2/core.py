@@ -36,7 +36,7 @@ The `DataCanvas` and `Chart` are not exposed to users as they are implicitly
 initialized in the interface function. It is noteworthy that the data canvas is agnostic
 to plotters. This means once the canvas instance is initialized we can reuse this data
 among multiple plotters. The canvas is initialized with a stylesheet and quantum backend
-information :py:class:~`qiskit.visualization.pulse_v2.device_info.DrawerBackendInfo`.
+information :py:class:~`qiskit.pulse.device_info.BackendInfo`.
 Chart instances are automatically generated when pulse program is loaded.
 
     ```python
@@ -76,7 +76,7 @@ from qiskit import pulse
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.pulse.transforms.channel_transforms import ChannelTransforms
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.pulse_v2 import types, drawings, device_info
+from qiskit.visualization.pulse_v2 import types, drawings
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
 
 
@@ -92,7 +92,7 @@ class DrawerCanvas:
     the appearance of the `Chart` output.
     """
 
-    def __init__(self, stylesheet: QiskitPulseStyle, device: device_info.DrawerBackendInfo):
+    def __init__(self, stylesheet: QiskitPulseStyle, device: pulse.device_info.BackendInfo):
         """Create new data container with backend system information.
 
         Args:
