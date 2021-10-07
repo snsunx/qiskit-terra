@@ -21,6 +21,7 @@ from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 
 import numpy as np
 from qiskit import pulse
+from qiskit.pulse.utils import deprecated_functionality
 
 
 BarrierInstruction = NamedTuple(
@@ -51,6 +52,7 @@ ChartAxis.name.__doc__ = "Name of chart."
 ChartAxis.channels.__doc__ = "Channels associated with chart."
 
 
+@deprecated_functionality
 class ParsedInstruction(NamedTuple):
     xvals: np.ndarray
     yvals: np.ndarray
@@ -63,6 +65,7 @@ ParsedInstruction.yvals.__doc__ = "Numpy array of y axis data."
 ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
 
 
+@deprecated_functionality
 class OpaqueShape(NamedTuple):
     duration: np.ndarray
     meta: Dict[str, Any]

@@ -21,7 +21,11 @@ from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
 from qiskit.pulse import device_info
-from qiskit.pulse.transforms.channel_transforms import ChannelTransforms, PhaseFreqTuple, ParsedInstruction
+from qiskit.pulse.transforms.channel_transforms import (
+    ChannelTransforms,
+    PhaseFreqTuple,
+    ParsedInstruction,
+)
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
@@ -280,7 +284,7 @@ class TestWaveformGenerators(QiskitTestCase):
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         objs = waveform.gen_waveform_max_value(
-            inst_data, formatter=self.formatter
+            inst_data, formatter=self.formatter, device=self.device
         )
 
         # type check
@@ -868,6 +872,8 @@ class TestBarrierGenerators(QiskitTestCase):
         }
         self.assertDictEqual(obj.styles, ref_style)
 
-if __name__ == '__main__':
-	import unittest
-	unittest.main()
+
+if __name__ == "__main__":
+    import unittest
+
+    unittest.main()

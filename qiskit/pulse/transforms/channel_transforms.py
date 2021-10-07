@@ -25,16 +25,22 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.device_info import OpenPulseBackendInfo
 from qiskit.pulse.library import ParametricPulse, Waveform
 from qiskit.pulse.instructions import (
-    Instruction, Play, Delay, Acquire,
-    SetFrequency, ShiftFrequency, SetPhase, ShiftPhase)
+    Instruction,
+    Play,
+    Delay,
+    Acquire,
+    SetFrequency,
+    ShiftFrequency,
+    SetPhase,
+    ShiftPhase,
+)
 from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
-ScheduleLike = Union[Schedule, ScheduleBlock,
-                     InstructionSched, Iterable[InstructionSched]]
+ScheduleLike = Union[Schedule, ScheduleBlock, InstructionSched, Iterable[InstructionSched]]
 WaveformInstruction = Union[Play, Delay, Acquire]
-FrameInstruction = Union[SetFrequency, ShiftFrequency,
-                         SetPhase, ShiftPhase]
+FrameInstruction = Union[SetFrequency, ShiftFrequency, SetPhase, ShiftPhase]
+
 
 @dataclass
 class PhaseFreqTuple:
@@ -44,8 +50,10 @@ class PhaseFreqTuple:
         phase: Phase value in rad.
         freq: Frequency value in Hz.
     """
+
     phase: float
     freq: float
+
 
 @dataclass
 class ParsedInstruction:
@@ -60,6 +68,7 @@ class ParsedInstruction:
         xdata: The time point data for plotting.
         ydata: The pulse amplitude data for plotting.
     """
+
     t0: int
     dt: float
     frame: PhaseFreqTuple
@@ -69,6 +78,7 @@ class ParsedInstruction:
     xdata: np.ndarray = None
     ydata: np.ndarray = None
 
+
 class ChannelTransforms:
     """Channel transform manager."""
 
@@ -77,9 +87,6 @@ class ChannelTransforms:
         waveforms: Dict[int, Instruction],
         frames: Dict[int, List[Instruction]],
         channel: Channel,
-        dt: Optional[int] = None,
-        init_phase: Optional[float] = None,
-        init_frequency: Optional[float] = None
     ):
         """Creates a new channel transform manager.
 
@@ -93,18 +100,19 @@ class ChannelTransforms:
         self.channel = channel
 
         # initial frame
-        self._init_phase = init_phase or 0
-        self._init_frequency = init_frequency or 0
+        self._init_phase = 0
+        self._init_frequency = 0
 
         # time resolution
-        self._dt = dt or 0
+        self._dt = 0
 
     @classmethod
-    def load_program(cls,
-                     program: ScheduleLike,
-                     channel: Channel,
-                     device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None
-                     ) -> 'ChannelTransforms':
+    def load_program(
+        cls,
+        program: ScheduleLike,
+        channel: Channel,
+        device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None,
+    ) -> "ChannelTransforms":
         """Loads a pulse program represented by ``Schedule``.
 
         Args:
@@ -141,11 +149,12 @@ class ChannelTransforms:
 
         return chan_transforms
 
-    def set_config(self,
-                   dt: Optional[float] = None,
-                   init_frequency: Optional[float] = None,
-                   init_phase: Optional[float] = None
-                   ) -> None:
+    def set_config(
+        self,
+        dt: Optional[float] = None,
+        init_frequency: Optional[float] = None,
+        init_phase: Optional[float] = None,
+    ) -> None:
         """Sets up system status.
 
         Args:
@@ -157,12 +166,11 @@ class ChannelTransforms:
         self._init_frequency = init_frequency or 0
         self._init_phase = init_phase or 0
 
-    def get_parsed_instructions(self, apply_frequency: bool = False
-                                ) -> Iterator[ParsedInstruction]:
-        """Returns parsed instructions with phase and frequency shifts.
+    def get_parsed_instructions(self, apply_frequency: bool = False) -> Iterator[ParsedInstruction]:
+        """Returns parsed instructions with phase and frequency modulation.
 
         Args:
-            apply_frequency: Whether to apply frequency shifts to the waveform.
+            Whether to apply frequency modulation to the waveform.
 
         Yields:
             An iterator of parsed instructions.
@@ -194,8 +202,9 @@ class ChannelTransforms:
             if isinstance(inst, Play):
                 is_opaque = inst.pulse.is_parameterized()
 
-            parsed_inst = self._parse_waveform(t0, self._dt, frame, inst, is_opaque,
-                                               apply_frequency=apply_frequency)
+            parsed_inst = self._parse_waveform(
+                t0, self._dt, frame, inst, is_opaque, apply_frequency=apply_frequency
+            )
 
             yield parsed_inst
 
@@ -230,7 +239,7 @@ class ChannelTransforms:
             yield ParsedInstruction(t0, self._dt, frame, frame_changes, is_opaque)
 
     def get_waveform(self, apply_frequency: bool = False) -> Waveform:
-        """Returns the pulse waveform on the channel.
+        """Returns all pulses on the channel as a single Waveform object.
 
         Args:
             Whether frequency modulation is applied.
@@ -238,8 +247,7 @@ class ChannelTransforms:
         Returns:
             The pulse waveform on the channel.
         """
-        parsed_instructions = list(self.get_parsed_instructions(
-            apply_frequency=apply_frequency))
+        parsed_instructions = list(self.get_parsed_instructions(apply_frequency=apply_frequency))
         max_xval = parsed_instructions[-1].xdata[-1]
         samples = np.zeros((max_xval + 1,), dtype=complex)
 

@@ -22,6 +22,7 @@ from qiskit.visualization.pulse_v2 import core, stylesheet, drawings, types, lay
 from qiskit.pulse import device_info
 from qiskit.pulse.transforms.channel_transforms import ParsedInstruction
 
+
 class TestChart(QiskitTestCase):
     """Tests for chart."""
 
@@ -382,6 +383,8 @@ class TestDrawCanvas(QiskitTestCase):
         ref_scale = {pulse.DriveChannel(0): 5, pulse.DriveChannel(1): 5}
         self.assertDictEqual(canvas.chan_scales, ref_scale)
 
-if __name__ == '__main__':
-	import unittest
-	unittest.main()
+
+if __name__ == "__main__":
+    import unittest
+
+    unittest.main()

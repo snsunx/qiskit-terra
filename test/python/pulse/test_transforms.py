@@ -31,6 +31,8 @@ from qiskit.pulse import (
 from qiskit.pulse import transforms, instructions
 from qiskit.pulse.channels import MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.instructions import directives
+from qiskit.pulse.transforms import channel_transforms
+from qiskit.pulse.transforms.channel_transforms import PhaseFreqTuple, ParsedInstruction
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -927,17 +929,21 @@ class TestRemoveSubroutines(QiskitTestCase):
 
         self.assertEqual(target, reference)
 
+
 class TestChannelTransforms(QiskitTestCase):
-    """Test channel transform functions"""
-    '''
+    """Tests for ChannelEvents."""
+
     def test_parse_waveform(self):
         """Test helper function that parse waveform with Waveform instance."""
         test_pulse = pulse.library.gaussian(10, 0.1, 3)
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
-        x, y, _ = transforms.ChannelTransforms._parse_waveform(inst_data)
+        parsed_inst = transforms.ChannelTransforms._parse_waveform(
+            10, 0.1, PhaseFreqTuple(0, 0), inst, False
+        )
+        x = parsed_inst.xdata
+        y = parsed_inst.ydata
 
         x_ref = np.arange(10, 20)
         y_ref = test_pulse.samples
@@ -947,26 +953,25 @@ class TestChannelTransforms(QiskitTestCase):
 
     def test_parse_waveform_parametric(self):
         """Test helper function that parse waveform with ParametricPulse instance."""
-        test_pulse = pulse.library.Gaussian(10, 0.1, 3)
+        test_pulse = Gaussian(10, 0.1, 3)
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
-        inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
-        x, y, _ = waveform._parse_waveform(inst_data)
+        parsed_inst = transforms.ChannelTransforms._parse_waveform(
+            10, 0.1, PhaseFreqTuple(0, 0), inst, False
+        )
+        x = parsed_inst.xdata
+        y = parsed_inst.ydata
 
         x_ref = np.arange(10, 20)
         y_ref = test_pulse.get_waveform().samples
 
         np.testing.assert_array_equal(x, x_ref)
         np.testing.assert_array_equal(y, y_ref)
-    '''
 
-class TestChannelEvents(QiskitTestCase):
-    """Tests for ChannelEvents."""
-
-    def test_parse_program(self):
+    def test_load_program(self):
         """Test typical pulse program."""
-        test_pulse = pulse.Gaussian(10, 0.1, 3)
+        test_pulse = Gaussian(10, 0.1, 3)
 
         sched = pulse.Schedule()
         sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
@@ -1105,6 +1110,78 @@ class TestChannelEvents(QiskitTestCase):
         chan_transforms = transforms.ChannelTransforms.load_program(test_sched, ch)
 
         self.assertEqual(len(list(chan_transforms.get_parsed_instructions())), 4)
+
+    def test_get_waveform(self):
+        """Test get_waveform without frequency modulation."""
+        test_pulse = Gaussian(10, 0.1, 3)
+        test_pulse_samples = test_pulse.get_waveform().samples
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(0))
+        sched += pulse.ShiftPhase(1.2, pulse.DriveChannel(0))
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(0))
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(1))
+        sched += pulse.Delay(10, pulse.DriveChannel(1))
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(1))
+        sched += pulse.Acquire(10, pulse.AcquireChannel(0), MemorySlot(0))
+        sched += pulse.Delay(6, pulse.AcquireChannel(0))
+        sched += pulse.Acquire(12, pulse.AcquireChannel(0), MemorySlot(0))
+
+        # Test pulse, shift phase, pulse
+        chan_transforms = transforms.ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
+        samples = chan_transforms.get_waveform().samples
+        ref_samples = np.hstack((test_pulse_samples, test_pulse_samples * np.exp(1j * 1.2)))
+        np.testing.assert_array_equal(samples, ref_samples)
+
+        # Test pulse, delay, pulse
+        chan_transforms = transforms.ChannelTransforms.load_program(sched, pulse.DriveChannel(1))
+        samples = chan_transforms.get_waveform().samples
+        ref_samples = np.hstack((test_pulse_samples, np.zeros((10,)), test_pulse_samples))
+        np.testing.assert_array_equal(samples, ref_samples)
+
+        # Test acquire, delay, acquire
+        chan_transforms = transforms.ChannelTransforms.load_program(sched, pulse.AcquireChannel(0))
+        samples = chan_transforms.get_waveform().samples
+        ref_samples = np.hstack(
+            (
+                np.ones((10,)),
+                np.zeros((6,)),
+                np.ones(
+                    12,
+                ),
+            )
+        )
+        np.testing.assert_array_equal(samples, ref_samples)
+
+    def test_get_waveform_with_frequency(self):
+        """Test get_waveform with frequency modulation."""
+        test_pulse = Gaussian(10, 0.1, 3)
+        test_pulse_samples = test_pulse.get_waveform().samples
+        dt = 2e-10
+        init_frequency = 5.9e9
+        freq_shift = 200e6
+        final_frequency = init_frequency + freq_shift
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(0))
+        sched += pulse.ShiftFrequency(freq_shift, pulse.DriveChannel(0))
+        sched += pulse.Delay(10, pulse.DriveChannel(0))
+        sched += pulse.Play(test_pulse, pulse.DriveChannel(0))
+
+        # Test pulse, shift phase, pulse
+        chan_transforms = transforms.ChannelTransforms.load_program(sched, pulse.DriveChannel(0))
+        chan_transforms.set_config(dt=dt, init_frequency=init_frequency)
+        samples = chan_transforms.get_waveform(apply_frequency=True).samples
+        ref_samples = np.hstack(
+            (
+                test_pulse_samples * np.exp(1j * 2 * np.pi * init_frequency * dt * np.arange(10)),
+                np.zeros((10,)),
+                test_pulse_samples
+                * np.exp(1j * 2 * np.pi * final_frequency * dt * np.arange(20, 30)),
+            )
+        )
+        np.testing.assert_array_almost_equal(samples, ref_samples)
+
 
 if __name__ == "__main__":
     unittest.main()

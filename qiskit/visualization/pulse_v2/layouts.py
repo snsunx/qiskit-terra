@@ -83,8 +83,11 @@ import numpy as np
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import types
 
+
 def channel_type_grouped_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
+    channels: List[pulse.channels.Channel],
+    formatter: Dict[str, Any],
+    device: pulse.device_info.BackendInfo,
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -134,7 +137,9 @@ def channel_type_grouped_sort(
 
 
 def channel_index_grouped_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
+    channels: List[pulse.channels.Channel],
+    formatter: Dict[str, Any],
+    device: pulse.device_info.BackendInfo,
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -196,7 +201,9 @@ def channel_index_grouped_sort(
 
 
 def channel_index_grouped_sort_u(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
+    channels: List[pulse.channels.Channel],
+    formatter: Dict[str, Any],
+    device: pulse.device_info.BackendInfo,
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -259,7 +266,9 @@ def channel_index_grouped_sort_u(
 
 
 def qubit_index_sort(
-    channels: List[pulse.channels.Channel], formatter: Dict[str, Any], device: pulse.device_info.BackendInfo
+    channels: List[pulse.channels.Channel],
+    formatter: Dict[str, Any],
+    device: pulse.device_info.BackendInfo,
 ) -> Iterator[Tuple[str, List[pulse.channels.Channel]]]:
     """Layout function for the channel assignment to the chart instance.
 
@@ -360,7 +369,8 @@ def time_map_in_ns(
 
 
 def detail_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: pulse.device_info.BackendInfo
+    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+    device: pulse.device_info.BackendInfo,
 ) -> str:
     """Layout function for generating figure title.
 
@@ -387,7 +397,8 @@ def detail_title(
 
 
 def empty_title(
-    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule], device: pulse.device_info.BackendInfo
+    program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule],
+    device: pulse.device_info.BackendInfo,
 ) -> str:
     """Layout function for generating an empty figure title."""
     return ""

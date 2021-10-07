@@ -52,9 +52,7 @@ from qiskit.visualization.pulse_v2 import drawings, types
 
 
 def gen_filled_waveform_stepwise(
-    parsed_inst: ParsedInstruction,
-    formatter: Dict[str, Any], 
-    device: device_info.BackendInfo
+    parsed_inst: ParsedInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
@@ -89,8 +87,7 @@ def gen_filled_waveform_stepwise(
         ydata = parsed_inst.ydata
 
         return _draw_shaped_waveform(
-            xdata=xdata, ydata=ydata, meta=meta,
-            channel=channel, formatter=formatter
+            xdata=xdata, ydata=ydata, meta=meta, channel=channel, formatter=formatter
         )
     else:
         # Draw parametric pulse with unbound parameters
@@ -113,9 +110,7 @@ def gen_filled_waveform_stepwise(
 
 
 def gen_ibmq_latex_waveform_name(
-    parsed_inst: ParsedInstruction,
-    formatter: Dict[str, Any],
-    device: device_info.BackendInfo
+    parsed_inst: ParsedInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
@@ -219,7 +214,7 @@ def gen_ibmq_latex_waveform_name(
 
 
 def gen_waveform_max_value(
-    parsed_inst: ParsedInstruction, formatter: Dict[str, Any]
+    parsed_inst: ParsedInstruction, formatter: Dict[str, Any], device: device_info.BackendInfo
 ) -> List[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
@@ -232,6 +227,7 @@ def gen_waveform_max_value(
     Args:
         parsed_inst: Parsed instruction data to draw.
         formatter: Dictionary of stylesheet settings.
+        device: Backend configuration.
 
     Returns:
         List of `TextData` drawings.
@@ -508,6 +504,7 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
     except ValueError:
         return np.ones_like(data_array).astype(bool)
 
+
 def _get_metadata(parsed_inst: ParsedInstruction) -> dict:
     """A helper function that generates the metadata for plotting functions.
 
@@ -546,7 +543,9 @@ def _get_metadata(parsed_inst: ParsedInstruction) -> dict:
                     meta.update(
                         {
                             "duration (cycle time)": inst.duration,
-                            "duration (sec)": inst.duration * parsed_inst.dt if parsed_inst.dt else "N/A",
+                            "duration (sec)": inst.duration * parsed_inst.dt
+                            if parsed_inst.dt
+                            else "N/A",
                         }
                     )
                 else:
