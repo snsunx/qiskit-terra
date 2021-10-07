@@ -15,12 +15,12 @@ the ``Instruction``s in a ``Schedule`` on a specific channel."""
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Iterable, Iterator, Dict, List
+from typing import Optional, Union, Tuple, Iterator, Dict, List
 import numpy as np
 
 from qiskit.providers.basebackend import BaseBackend
 from qiskit.circuit import Parameter, ParameterExpression
-from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.device_info import OpenPulseBackendInfo
 from qiskit.pulse.library import ParametricPulse, Waveform
@@ -34,10 +34,8 @@ from qiskit.pulse.instructions import (
     SetPhase,
     ShiftPhase,
 )
-from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
-ScheduleLike = Union[Schedule, ScheduleBlock, InstructionSched, Iterable[InstructionSched]]
 WaveformInstruction = Union[Play, Delay, Acquire]
 FrameInstruction = Union[SetFrequency, ShiftFrequency, SetPhase, ShiftPhase]
 
@@ -109,7 +107,7 @@ class ChannelTransforms:
     @classmethod
     def load_program(
         cls,
-        program: ScheduleLike,
+        program: Schedule,
         channel: Channel,
         device: Optional[Union[BaseBackend, OpenPulseBackendInfo]] = None,
     ) -> "ChannelTransforms":
@@ -123,9 +121,6 @@ class ChannelTransforms:
         Returns:
             The channel transform manager for the specified channel.
         """
-        # flatten the schedule
-        program = target_qobj_transform(program)
-
         waveforms = dict()
         frames = defaultdict(list)
 
