@@ -29,12 +29,12 @@ from qiskit.pulse.transforms.channel_transforms import (
 
 
 def create_instruction(inst, phase, freq, t0, dt, is_opaque=False):
-    """A helper function to create InstructionTuple."""
-    frame = PhaseFreqTuple(phase=phase, freq=freq)
+    """A helper function to create ParsedInstruction."""
+    frame_tuple = PhaseFreqTuple(phase=phase, freq=freq)
     if isinstance(inst, (pulse.Play, pulse.Acquire, pulse.Delay)):
-        parsed_inst = ChannelTransforms._parse_waveform(t0, dt, frame, inst, is_opaque)
+        parsed_inst = ChannelTransforms._parse_waveform(t0, dt, frame_tuple, inst, is_opaque)
     else:
-        parsed_inst = ParsedInstruction(t0, dt, frame, inst, is_opaque)
+        parsed_inst = ParsedInstruction(t0, dt, frame_tuple, inst, is_opaque)
     return parsed_inst
 
 

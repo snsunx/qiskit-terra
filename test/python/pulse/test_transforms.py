@@ -31,8 +31,7 @@ from qiskit.pulse import (
 from qiskit.pulse import transforms, instructions
 from qiskit.pulse.channels import MemorySlot, DriveChannel, AcquireChannel
 from qiskit.pulse.instructions import directives
-from qiskit.pulse.transforms import channel_transforms
-from qiskit.pulse.transforms.channel_transforms import PhaseFreqTuple, ParsedInstruction
+from qiskit.pulse.transforms.channel_transforms import PhaseFreqTuple
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 

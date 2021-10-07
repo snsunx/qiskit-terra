@@ -74,7 +74,11 @@ from typing import Union, List, Tuple, Iterator, Optional
 import numpy as np
 from qiskit import pulse
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.pulse.transforms.channel_transforms import ChannelTransforms, PhaseFreqTuple
+from qiskit.pulse.transforms.channel_transforms import (
+    ChannelTransforms,
+    PhaseFreqTuple,
+    ParsedInstruction,
+)
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import types, drawings
 from qiskit.visualization.pulse_v2.stylesheet import QiskitPulseStyle
@@ -230,7 +234,7 @@ class DrawerCanvas:
 
         # add waveform data
         fake_inst = pulse.Play(program, types.WaveformChannel())
-        inst_data = types.PulseInstruction(
+        inst_data = ParsedInstruction(
             t0=0,
             dt=self.device.dt,
             frame=PhaseFreqTuple(phase=0, freq=0),
