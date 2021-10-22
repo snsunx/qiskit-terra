@@ -80,6 +80,7 @@ than plotting each operand value bound to the instruction.
 """
 from collections import defaultdict
 from typing import Dict, List, Iterator, Tuple
+import warnings
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
@@ -115,8 +116,8 @@ class ChannelEvents:
         """
 
         warnings.warn(
-            "ChannelEvents is deprecated. Use pulse.transforms.ChannelTransforms", 
-            DeprecationWarning
+            "ChannelEvents is deprecated. Use pulse.transforms.ChannelTransforms",
+            DeprecationWarning,
         )
         self._waveforms = waveforms
         self._frames = frames

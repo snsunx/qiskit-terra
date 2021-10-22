@@ -18,6 +18,7 @@ Special data types.
 
 from enum import Enum
 from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
+import warnings
 
 import numpy as np
 from qiskit import pulse
@@ -27,7 +28,11 @@ from qiskit.pulse.utils import deprecated_functionality
 class PhaseFreqTuple(NamedTuple):
     phase: float
     freq: float
-    warnings.warn("PhaseFreqTuple is deprecated. It is moved to pulse.transforms.channel_transforms.py.", DeprecationWarning)
+    warnings.warn(
+        "PhaseFreqTuple is deprecated. It is moved to pulse.transforms.channel_transforms.py.",
+        DeprecationWarning,
+    )
+
 
 PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
 PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
@@ -40,7 +45,10 @@ class PulseInstruction(NamedTuple):
     frame: PhaseFreqTuple
     inst: Union[pulse.Instruction, List[pulse.Instruction]]
     is_opaque: bool
-    warnings.warn("PulseInstruction is deprecated. It is moved to pulse.transforms.channel_transforms.py as ParsedInstruction.", DeprecationWarning)
+    warnings.warn(
+        "PulseInstruction is deprecated. It is moved to pulse.transforms.channel_transforms.py as ParsedInstruction.",
+        DeprecationWarning,
+    )
 
 
 PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
