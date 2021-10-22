@@ -24,24 +24,23 @@ from qiskit import pulse
 from qiskit.pulse.utils import deprecated_functionality
 
 
-@deprecated_functionality
 class PhaseFreqTuple(NamedTuple):
     phase: float
     freq: float
-
+    warnings.warn("PhaseFreqTuple is deprecated. It is moved to pulse.transforms.channel_transforms.py.", DeprecationWarning)
 
 PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
 PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
 PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
 
 
-@deprecated_functionality
 class PulseInstruction(NamedTuple):
     t0: int
     dt: float
     frame: PhaseFreqTuple
     inst: Union[pulse.Instruction, List[pulse.Instruction]]
     is_opaque: bool
+    warnings.warn("PulseInstruction is deprecated. It is moved to pulse.transforms.channel_transforms.py as ParsedInstruction.", DeprecationWarning)
 
 
 PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
