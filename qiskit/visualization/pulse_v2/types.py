@@ -16,47 +16,60 @@
 Special data types.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
 import warnings
 
 import numpy as np
 from qiskit import pulse
-from qiskit.pulse.utils import deprecated_functionality
 
 
-class PhaseFreqTuple(NamedTuple):
+@dataclass
+class PhaseFreqTuple:
+    """Data to represent a set of frequency and phase values.
+
+    Args:
+        phase: Data to represent a set of frequency and phase values.
+        freq: Frequency value in Hz.
+    """
+
     phase: float
     freq: float
-    warnings.warn(
-        "PhaseFreqTuple is deprecated. It is moved to pulse.transforms.channel_transforms.py.",
-        DeprecationWarning,
-    )
+
+    def __new__(cls, *args, **kwargs):
+        warnings.warn(
+            "PhaseFreqTuple is deprecated. It is moved to pulse.transforms.channel_transforms.py.",
+            DeprecationWarning,
+        )
+        return pulse.transforms.channel_transforms.PhaseFreqTuple(*args, **kwargs)
 
 
-PhaseFreqTuple.__doc__ = "Data to represent a set of frequency and phase values."
-PhaseFreqTuple.phase.__doc__ = "Phase value in rad."
-PhaseFreqTuple.freq.__doc__ = "Frequency value in Hz."
+@dataclass
+class PulseInstruction:
+    """Data to represent pulse instruction for visualization.
 
+    Args:
+        t0: A time when the instruction is issued
+        dt: System cycle time.
+        frame: A reference frame to run instruction.
+        inst: Pulse instruction.
+        is_opaque: If there is any unbound parameters.
+    """
 
-class PulseInstruction(NamedTuple):
     t0: int
     dt: float
     frame: PhaseFreqTuple
     inst: Union[pulse.Instruction, List[pulse.Instruction]]
     is_opaque: bool
-    warnings.warn(
-        "PulseInstruction is deprecated. It is moved to pulse.transforms.channel_transforms.py as ParsedInstruction.",
-        DeprecationWarning,
-    )
 
+    def __new__(cls, *args, **kwargs):
+        warnings.warn(
+            "PulseInstruction is deprecated. It is moved to pulse.transforms.channel_transforms.py as ParsedInstruction.",
+            DeprecationWarning,
+        )
+        return pulse.transforms.channel_transforms.ParsedInstruction(*args, **kwargs)
 
-PulseInstruction.__doc__ = "Data to represent pulse instruction for visualization."
-PulseInstruction.t0.__doc__ = "A time when the instruction is issued."
-PulseInstruction.dt.__doc__ = "System cycle time."
-PulseInstruction.frame.__doc__ = "A reference frame to run instruction."
-PulseInstruction.inst.__doc__ = "Pulse instruction."
-PulseInstruction.is_opaque.__doc__ = "If there is any unbound parameters."
 
 BarrierInstruction = NamedTuple(
     "Barrier", [("t0", int), ("dt", Optional[float]), ("channels", List[pulse.channels.Channel])]
@@ -86,7 +99,6 @@ ChartAxis.name.__doc__ = "Name of chart."
 ChartAxis.channels.__doc__ = "Channels associated with chart."
 
 
-@deprecated_functionality
 class ParsedInstruction(NamedTuple):
     xvals: np.ndarray
     yvals: np.ndarray
@@ -99,7 +111,6 @@ ParsedInstruction.yvals.__doc__ = "Numpy array of y axis data."
 ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
 
 
-@deprecated_functionality
 class OpaqueShape(NamedTuple):
     duration: np.ndarray
     meta: Dict[str, Any]
